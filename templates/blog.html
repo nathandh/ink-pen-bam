@@ -8,18 +8,6 @@
 {% block content %}
 	<a href="/blog/newpost"><div class="newpost_link">add NEW post</div></a>
 	{% for post in posts %}
-		<!--div class="post">
-			<div class="post-subject">
-				{{post.subject}}
-			</div>
-
-			<div class="date-time">
-				{{post.created}}
-			</div>
-
-			<div class="post-content">{{post.render() | safe}}</div>
-			</div> -->
 		{{post.render() | safe}}
-	<!--<div class="subtitle"><a href="/blog/{{post.key().id()}}">Permalink: {{post.key().id()}}</a></div>-->
 	{% endfor %}
 {% endblock %}

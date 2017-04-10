@@ -6,4 +6,27 @@
 
 {% block content %}
 	<h1>Welcome, {{username}}!</h1>
+	<hr>
+	<!-- Custom Tabbed Content for displaying User's Posts and ALL Posts -->
+	<div class="welcome-tabs">
+		<ul>
+			<li><a href="#my-posts" class="active">MY posts</a></li>
+			<li><a href="#all-posts">ALL posts</a></li>
+		</ul>
+		<div id="my-posts">
+			<h3>*posts* for {{username}}</h3>
+			{% for post in user_logged_posts %}
+				{{post.render() | safe}}
+			{% endfor %}
+		</div>
+		<div id="all-posts">
+			<h3>ALL *posts*</h3>
+			{% for post in all_posts %}
+				{{post.render() | safe}}
+			{% endfor %}
+		</div>
+	</div>
+
+	<!-- Extra javascript inclusion for Welcome page tabbed content -->
+	<script type="text/javascript" src="/js/welcome-page.js"></script>
 {% endblock %}

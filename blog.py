@@ -19,7 +19,7 @@ HASHING SPECIFIC
 """
 class Hasher():
     def make_salt(self):
-        salt = random.sample(string.ascii_lowercase, 5)
+        salt = random.sample(string.ascii_lowercase, 8)
         return ''.join(salt)
 
     """
@@ -71,7 +71,7 @@ class Handler(webapp2.RequestHandler):
         self.response.write(self.render_str(template, **kw))
 
 """
-USER App Engine Entity for persistance
+USER App Engine Entity (Model) for persistance
 """
 class User(db.Model):
     username = db.StringProperty(required = True)
@@ -88,7 +88,7 @@ class UserHandler():
         if hashed_pass:
             my_pass = hashed_pass[0]
             my_salt = hashed_pass[1]
-            user = User(username=username, password=my_pass, salt=my_salt)
+            user = User(username=username, password=my_pass, email=email, salt=my_salt)
             key = user.put()
             my_user = User.get(key)
         return my_user
@@ -234,11 +234,12 @@ class UserSignup(Handler):
             self.redirect("/blog/welcome")
 
 """
-POST Google App Engine Entity for persistance
+POST Google App Engine Entity (Model) for persistance
 """
 class Post(db.Model):
     subject = db.StringProperty(required = True)
     content = db.TextProperty(required = True)
+    created_by = db.StringProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
     last_modified = db.DateTimeProperty(auto_now = True)
 
@@ -247,7 +248,7 @@ class Post(db.Model):
         return Handler().render_str("post.html", post=self)
 
 """
-Handler for individual posts permalinks
+Permalink Handler for individual posts permalink pages
 """
 class PostHandler(Handler):
     def get(self, post_id):
@@ -286,20 +287,49 @@ class PostHandler(Handler):
             print "DELETE of POST instance failed!"
 
 """
-New Post URL Handler, for our blog post additions
+NEW Post URL Handler, for our blog post additions
 """
 class NewPost(Handler):
-    def add_new_post(self, subject, content):
-        p = Post(subject=subject, content=content)
+    def add_new_post(self, subject, content, created_by):
+        p = Post(subject=subject, content=content, created_by=created_by)
         p.put() 
 
         #print p
         self.redirect("/blog/%s" % p.key().id())
 
     def get(self):
-        self.render("newpost.html", subject_validation="", content_validation="")
+        # See if User is logged on, if Not then Redirect to Signup Page
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+
+        if user_info:
+            # Some user cookie exists
+            user_logged_in = True
+
+            # Check validity of cookie info against DataStore
+            user = UserHandler().user_loggedin_valid(self, user_info)
+
+            if user:
+                user_valid = True
+                # Allow redirection to NEW Post page
+                self.render("newpost.html", subject_validation="", content_validation="")
+            else:
+                print "Cookie invalid @ NewPost handler!"
+
+        if user_logged_in == False or user_valid == False:
+            self.redirect("/blog/signup")
 
     def post(self):
+        created_by = None
+
+        # Grab User Info
+        user_info = UserHandler().user_logged_in(self)
+        if user_info:
+            user = UserHandler().user_loggedin_valid(self, user_info)
+            if user:
+                created_by = user.username
+
         subject = self.request.get("subject")
         content = self.request.get("content")
 
@@ -322,7 +352,7 @@ class NewPost(Handler):
         If all is well, add the post...Otherwise render the page with errors
         """
         if validation_error == False:
-            self.add_new_post(subject, content)
+            self.add_new_post(subject, content, created_by)
         else:
             self.render("newpost.html", subject=subject, content=content, 
                     subject_validation=subject_validation, content_validation=content_validation)
@@ -332,19 +362,44 @@ Main BLOG Front Page Handler
 """
 class Blog(Handler):
     def get(self):
+        posts_exist = False
         posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
         # Output post.ids for debugging
         #for post in posts: 
         #    print post.key().id()
 
-        self.render("blog.html", posts=posts)
+        if posts.get() != None:
+            print "We have Posts"
+            posts_exist = True
+            self.render("blog.html", posts=posts)
     
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+
+        if user_info:
+            user_logged_in = True
+            user = UserHandler().user_loggedin_valid(self, user_info)
+
+            if user:
+                print ("We have a USER that is logged in @ '/blog' FRONT")
+                user_valid = True
+                self.redirect("/blog/welcome")
+
+        # If NO user posts yet exist, And NO User logged in...just redirect to SIGNUP page
+        if (user_logged_in == False or user_valid == False) and posts_exist == False:
+            self.redirect("/blog/signup")
+
     def post(self):
         self.render("blog.html")
 
         
 class Welcome(Handler):
     def get(self):
+        # For Tabbed Content on Welcome page, Default is None
+        all_posts = None
+        user_logged_posts = None
+
         user_logged_in = False
         user_valid = False
         user_info = UserHandler().user_logged_in(self)
@@ -359,7 +414,16 @@ class Welcome(Handler):
             if user:
                 user_valid = True
                 username = user.username
-                self.render("welcome.html", username=username)
+
+                # Get All Posts BY USER
+                user_logged_posts = db.GqlQuery("SELECT * FROM Post WHERE created_by = :created_by ORDER BY created DESC", created_by=username)
+
+                # Get ALL the POSTS
+                all_posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
+
+                # Render our page
+                self.render("welcome.html", username=username, user_logged_posts=user_logged_posts, 
+                            all_posts=all_posts)
         else:
             print "We don't have a cookie set yet!"
             

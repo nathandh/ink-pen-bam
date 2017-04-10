@@ -15,6 +15,13 @@ body {
 .title > a {
 	text-decoration: none !important;
 }
+.title > a > h2 {
+	background: hsla(204, 62%, 34%, 0.95);
+	margin-top: 0px;
+	padding-top: 12px;
+	height: 45px;
+	color: ghostwhite;
+}
 .permalink {
 	margin-top: 10px;
 	font-size: 10px;
@@ -66,9 +73,23 @@ body {
 	font-size: 18px;
 	font-weight: bold;
 }
-.date-time {
-	font-size: 10px;
-	float: right;
+.post-createdby {
+	display: inline-flex;
+	font-size: 14px;
+	
+	position: absolute;
+	right: 8px;
+}
+.post-createdby-name {
+	font-size: 14px;
+	font-weight: bold;
+}
+.post-date-time {
+	font-size: 14px;
+	
+	position: absolute;
+	right: 8px;
+	margin-top: 20px;
 }
 .header {
 	position: relative;
@@ -100,6 +121,13 @@ body {
 	margin-left: 8px;
 	margin-right: 8px;
 	margin-bottom: 8px;
+}
+
+/* For Buttons */
+.btn-text {
+	width: 55px;
+	height: 20px;
+	color: black;
 }
 
 /* User SignUp Form Specific */
@@ -241,5 +269,33 @@ body {
 	}
 	.top-login input {
 		width: auto;
+	}
+
+	/* Posts Formatting */
+	.post {
+		margin-bottom: 45px;
+	}
+	.post-createdby {
+		left: 8px;
+		margin-top: -28px;
+	}
+	.post-date-time {
+		left: 8px;
+		margin-top: -10px;
+	}
+	.post-subject {
+		position: relative;
+		top: 34px;
+	}
+	.post-content {
+		position: relative;
+		top: 34px;
+	}
+	.permalink {
+		position: relative;
+	}
+	#post-delete-form {
+		position: relative;
+		top: 0px;
 	}
 }
