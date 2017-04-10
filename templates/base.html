@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>{% block title %} Ink, Pen, Bam! | Explosive Poetry {% endblock %}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!--[if lt IE 9]>
+		<script src="http://css3-mediaqueries-js.googlecode.com/svn/trunk/css3-mediaqueries.js"></script>
+	<![endif]-->
+	<link type="text/css" rel="stylesheet" href="/css/inkpenbam.css" />
+	<script type="text/javascript" src="/js/inkpenbam.js"></script>
+</head>
+
+<body>
+	<div class="header-top"></div>
+	<div class="header">
+		<div></div>
+		<div class="header-logo">
+			<a href="/blog"><img src="/images/InkPenBam_logo_small.png" alt="InkPenBam Logo"></a>
+		</div>
+		<div></div>
+	</div>
+	<div class="header-bottom"><br/></div>
+	<div class="title"><a href="/blog"><h2>A Journey of Explosive Poetry</h2></a></div>
+	<div class="signup_login">
+		<a href="/blog/signup"><div class="signup_link">Signup</div></a>
+		<div>|</div>
+		<a href="/blog/login"><div class="login_link">Login</div></a>
+	</div>
+
+	<div id="content" class="content">
+		{% block content %}
+		{% endblock %}
+	</div>
+</body>
+</html>

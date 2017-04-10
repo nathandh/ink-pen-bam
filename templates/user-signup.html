@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}
+	Ink, Pen, Bam! | User Signup
+{% endblock %}
+
+{% block content %}
+	<div>
+		<h2>Signup:</h2>
+		<form method="post" id="signupform">
+			<div class="left_signup">
+				<label>Username: 
+					<input type="text" name="username" id="username" value="{{username}}">
+				</label>
+				<label>Password:	
+					<input type="password" name="password" id="password">
+				</label>
+				<label>Verify Password:	
+					<input type="password" name="verify" id="verify">
+				</label>
+				<label>Email (optional): 
+					<input type="text" name="email" id="email" value="{{email}}">
+				</label>
+			</div>
+			<div class="right_signup">
+				<div class="username_validation">{{username_validation}}</div>
+				<div class="password_validation">{{password_validation}}</div>
+				<div class="verify_validation"> {{verify_validation}}</div>
+				<div class="email_validation">{{email_validation}}</div>
+			</div>
+			<div class="bottom_signup"><input id="signup-submit" type="submit" value="Submit"></div>
+		</form>
+	</div>
+{% endblock %}

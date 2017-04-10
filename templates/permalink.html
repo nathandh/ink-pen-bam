@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}
+	Ink, Pen, Bam! | POST: {{permalink}}
+{% endblock %}
+
+
+{% block content %}
+	<a href="/blog/newpost"><div class="newpost_link">add NEW post</div></a>
+	<div>
+		{{post.render() | safe}}
+	</div>
+{% endblock %}

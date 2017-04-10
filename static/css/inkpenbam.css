@@ -1,0 +1,245 @@
+
+body {
+	font-family: Helvetica, Arial, sans-serif;
+	margin: 0;
+	padding: 0;
+}
+.title {
+	width: 100%;
+	/*position: absolute;
+	top: 0px;
+	left:20px;
+	color: ghostwhite;*/
+	text-align: center;
+}
+.title > a {
+	text-decoration: none !important;
+}
+.permalink {
+	margin-top: 10px;
+	font-size: 10px;
+	text-align: right;
+}
+.newpost_link, .signup_login {
+	text-align: right;
+}
+.signup_login {
+	position: absolute;
+	top: 15px;
+	right: 15px;
+	font-size: 18px;
+}
+.signup_login div {
+	display: inline;
+	color: ghostwhite;
+}
+.signup_login a {
+	text-decoration: none !important;
+}
+.signup_link {
+	color: ghostwhite;	
+}
+.login_link {
+	color: ghostwhite;
+}
+/* Logged in User Specific */
+.loggedin-user {
+	position: absolute;
+	top: 15px;
+	right: 15px;
+	font-size: 18px;
+}
+.loggedin-user div {
+	display: inline;
+	color: ghostwhite;
+}
+.loggedin-user a {
+	text-decoration: none !important;
+}
+.user-link {
+	color: ghostwhite;
+}
+.logout-link {
+	color: ghostwhite;
+}
+.post-subject {
+	font-size: 18px;
+	font-weight: bold;
+}
+.date-time {
+	font-size: 10px;
+	float: right;
+}
+.header {
+	position: relative;
+	background: linear-gradient(rgba(125,125,255,.1),rgba(125,25,255,.1)), url("../images/handwriting_bg.jpg");
+	background-size: 100% auto;
+	background-repeat: no-repeat;
+	background-color: #212F3D;
+	padding-top: 8px;
+	padding-bottom: 8px;
+	margin: 0 auto;
+	width: 100%;
+}
+.header-logo img {
+	position: relative;
+	opacity: 1;
+	-webkit-filter: contrast(125%);
+}
+.header img {
+	max-width: 100%;
+	height: auto;
+	display: block;
+	margin: 0 auto;
+}
+.header-top, .header-bottom {
+	height: 1px;
+	background-color: #21618C;
+}
+.content {
+	margin-left: 8px;
+	margin-right: 8px;
+	margin-bottom: 8px;
+}
+
+/* User SignUp Form Specific */
+#signupform {
+	float: left;
+	margin-bottom: 10px;
+}
+.left_signup input {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	
+	width: 50%;
+	display: inline-block;
+}
+.left_signup label {
+	display: block;
+	text-align: right;
+	margin-left: 0px;
+}
+.left_signup input, .left_signup label {
+	margin-bottom: 8px;
+}
+#signupform div {
+	overflow: hidden;
+}
+.left_signup {
+	width: auto;
+	float: left;
+}
+.right_signup {
+	color: red;
+	font-weight: bold;
+	display: block;
+}
+.right_signup div {
+	display: block;
+	margin-left: 10px;
+	height: 38px;
+}
+.bottom_signup {
+	width: 100%;
+	float: left;
+	display: inline;
+}
+.email_validation {
+	margin-bottom: 0px !important;
+}
+
+/* Login Form Specific */
+#loginform {
+	float: left;
+	margin-bottom: 10px;
+}
+.top-login input {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	
+	width: 75%;
+
+	display: inline-block;
+}
+.top-login label {
+	display: block;
+	/*text-align: right;*/
+	margin-left: 0px;
+}
+.top-login input, .top-login label {
+	margin-bottom: 8px;
+}
+#loginform div {
+	overflow: hidden;
+}
+.bottom-login {
+	color: red;
+	font-weight: bold;
+	display: block;
+}
+.bottom-login div {
+	display: inline;
+	height: 38px;
+}
+.login-error {
+	margin-bottom: 0px !important;
+}
+
+/* NewPost Form Specific */
+.newpost {
+	margin: 0 auto;
+}
+.newpost label, .newpost input {
+	display: block;
+}
+.newpost input, .newpost textarea {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	margin-bottom: 5px;
+}
+.newpost input {
+	width: 75%;
+}
+.newpost textarea {
+	width: 75%;
+	height: 200px;
+}
+#newpost-submit {
+	width: auto;
+}
+.newpost > form > .error {
+	color: red;
+	font-weight: bold;
+}
+
+/* Media Queries */
+@media screen and (max-width:600px) {
+	/* User Signup Form */
+	.left_signup input, .left_signup label {
+		display: block;
+	}
+	.left_signup label {
+		text-align: left;
+	}
+	.left_signup input {
+		width: auto;
+	}
+	.right_signup div {
+		margin-top: 7px;
+		height: 46px;
+	}
+
+	/* Login Form */
+	.top-login input, .top-login label {
+		display: block;
+	}
+	.top-login label {
+		text-align: left;
+	}
+	.top-login input {
+		width: auto;
+	}
+}
