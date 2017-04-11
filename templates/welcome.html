@@ -13,13 +13,13 @@
 			<li><a href="#my-posts" class="active">MY posts</a></li>
 			<li><a href="#all-posts">ALL posts</a></li>
 		</ul>
-		<div id="my-posts">
+		<div id="my-posts"><br />
 			<h3>*posts* for {{username}}</h3>
 			{% for post in user_logged_posts %}
 				{{post.render() | safe}}
 			{% endfor %}
 		</div>
-		<div id="all-posts">
+		<div id="all-posts"><br />
 			<h3>ALL *posts*</h3>
 			{% for post in all_posts %}
 				{{post.render() | safe}}

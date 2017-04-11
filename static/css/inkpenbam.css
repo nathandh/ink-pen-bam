@@ -78,7 +78,7 @@ body {
 	font-size: 14px;
 	
 	position: absolute;
-	right: 8px;
+	right: 16px;
 }
 .post-createdby-name {
 	font-size: 14px;
@@ -88,7 +88,7 @@ body {
 	font-size: 14px;
 	
 	position: absolute;
-	right: 8px;
+	right: 16px;
 	margin-top: 20px;
 }
 .header {
@@ -243,6 +243,70 @@ body {
 	font-weight: bold;
 }
 
+/* Welcome page TABS */
+.welcome-tabs {
+	overflow: hidden;
+	clear: both;
+	background-color: #FFFFFF;
+}
+.welcome-tabs div {
+	background-color: #EBF5FB;
+}
+#my-posts, #all-posts {
+	padding-left: 8px;
+	padding-right: 8px;
+	padding-bottom: 8px;
+	margin-top: 2.17em;
+}
+#my-posts {
+	border: #34495E 1px solid;
+}
+#all-posts {
+	border: #34495E 1px solid;
+}
+#my-posts > h3, #all-posts > h3 {
+	-webkit-margin-before: 0px;
+}
+.welcome-tabs ul {
+	position: relative;
+	list-style-type: none;
+
+	-webkit-padding-start: 30px;
+	-webkit-margin-before: 0px;
+}
+.welcome-tabs li {
+	float: left;
+
+}
+.welcome-tabs > ul > li {
+	margin-right: 8px;
+}
+.welcome-tabs > ul > li > a {
+	display: block;
+	padding: 8px;
+	text-align: center;
+	text-decoration: none;
+
+	color: #FFFFFF;
+	background-color: #34495E;
+
+	border-top: 1px solid #34495E;
+	border-left: 1px solid #34495E;
+	border-right: 1px solid #34495E;
+	border-bottom: 1px solid #EBF5FB;
+}
+.welcome-tabs > ul > li > a:hover {
+	background-color: #EBF5FB;
+	color: black;
+}
+.welcome-tabs > ul > li > .active {
+	background-color: #EBF5FB;
+	color: #212F3D;
+	border-bottom 0px;
+	font-weight: bold;
+}
+
+
 /* Media Queries */
 @media screen and (max-width:600px) {
 	/* User Signup Form */
@@ -276,11 +340,11 @@ body {
 		margin-bottom: 45px;
 	}
 	.post-createdby {
-		left: 8px;
+		left: 16px;
 		margin-top: -28px;
 	}
 	.post-date-time {
-		left: 8px;
+		left: 16px;
 		margin-top: -10px;
 	}
 	.post-subject {
@@ -297,5 +361,9 @@ body {
 	#post-delete-form {
 		position: relative;
 		top: 0px;
+	}
+
+	#my-posts, #all-posts {
+		margin-top: 2.24em;
 	}
 }
