@@ -17,10 +17,29 @@ from webapp2_extras import sessions
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                         autoescape = True)
+
 """
 HASHING SPECIFIC
 """
 class Hasher():
+    def get_secret_key(self):
+        # Secret Key to make more secure password hash.
+        # This is the same generated key as used in the CONFIG variable for sessions
+        secret_key = None
+        try:   
+            keyfile = os.path.join(os.path.dirname(__file__), 'inkpenbam.key')
+            if os.path.exists(keyfile):
+                print "KEY_FILE exists....extracting SECRET_KEY..."
+                file_handler = open(keyfile)
+                secret_key = file_handler.read().strip()
+                #print secret_key
+            else:
+                print "******MISSING KEY_FILE***********"
+        except:
+            print "===inkpenbam.key file does not exist, or cannot read===="
+        finally:    
+            return secret_key
+
     def make_salt(self):
         salt = random.sample(string.ascii_lowercase, 8)
         return ''.join(salt)
@@ -37,6 +56,7 @@ class Hasher():
         print "Salt is: %s" % user.salt
     
     def hash_str(self, s):
+        # Uses SHA256
         return hashlib.sha256(s).hexdigest()
 
     """
@@ -44,9 +64,10 @@ class Hasher():
     Returns Hashed Password and Salt as Tuple for later verification
     """
     def make_pw_hash(self, name, pw, salt = None):
+        SECRET_KEY = self.get_secret_key()
         if salt == None:
             salt = self.make_salt()
-        return "%s|%s" % (self.hash_str(name + pw + salt), salt)
+        return "%s|%s" % (self.hash_str(name + pw + SECRET_KEY + salt), salt)
     
     """
     Checks against stored data, to see if PW submitted = Stored Hash PW
@@ -102,6 +123,21 @@ class Handler(webapp2.RequestHandler):
             self.session['main_user_msgs'] = ""
         except:
             print "Session object doesn't exist yet...."
+
+    """
+    Gets the referrer source from headers, parses and returns it
+    """
+    def get_ref_source(self):
+        source = None
+        try:
+            ref = self.request.referrer.split('http://')[1]
+            first_slash = ref.find('/')
+            source = ref[first_slash: ]
+        except:
+            print "Can't parse HTTP Referrer."
+        finally:
+            print "Source retrieved was: %s" % source
+            return source
     
     """
     Session MGMT Specific
@@ -284,11 +320,41 @@ class UserHandler():
 class UserSignup(Handler):
     def get(self):
         print "IN: UserSignup.Handler()"
-        self.session["curr_handler"] = "UserSignup"
-        self._set_jinja_variable_session()
+
+        last_handler = None
+        errors_viewed = 0
+        try:
+            last_handler = self.session["curr_handler"]
+            errors_viewed = self.session["errors_viewed"]
+        except:
+            print "No Last Handler or Errors Viewed values exist"
+        finally:
+            self.session["curr_handler"] = "UserSignup"
+        
+        # Refresh our stored Jinja inkpenbam_session variable
+        stored_jinja_session = self._get_jinja_variable_session()
+        if stored_jinja_session == None:
+            self._set_jinja_variable_session()
+        
+        # Get referrer souce
+        source = self.get_ref_source()
+
+        if source!= None:
+            if errors_viewed == 1:
+                # Clear our previous session messages to display clean page
+                print "Previously displayed errors. So clearing..."
+                self.clear_main_msg()
+        
+        # Get User Messages for display, if applicable
+        main_user_msgs = self.get_main_msg()
         
         self.render("user-signup.html", username_validation="", password_validation="", 
-                    verify_validation="", email_validation="")
+                    verify_validation="", email_validation="", main_user_msgs=main_user_msgs)
+
+        # Mark any Error msgs as viewed if applicable
+        if self.get_main_msg != None and self.get_main_msg != "":
+            self.session['errors_viewed'] = 1
+            self._set_jinja_variable_session()
 
     def post(self):
         username = self.request.get("username")
@@ -422,15 +488,19 @@ class PostHandler(Handler):
                 # Set MAIN User MSG Text
                 print "post subject is: %s" % curr_post.subject
                 post_short_tag = "'%s...'" % curr_post.subject[0:20]
-                self.set_main_msg("Please Login to DELETE post: %s" % post_short_tag)
+                self.set_main_msg("Please <a href='/blog/login'>Login</a> to DELETE post: %s" % post_short_tag)
                 #self.session['main_user_msgs'] = "Please Login to EDIT post: %s" % post_short_tag
 
                 print "After DELETE click, session data is: %s" % self.session
+
+                # Set error message to NOT viewed
+                self.session["errors_viewed"] = 0 
                 
                 # Update STORED Jinja global session variable (for potential use in templates)
                 self._set_jinja_variable_session()
 
-                self.redirect("/blog")
+                #self.redirect("/blog") Redirecting to Login instead
+                self.redirect("/blog/login")
             except:
                 print "Cannot add session variable in DELETE Post"
         
@@ -505,15 +575,19 @@ class PostHandler(Handler):
                 # Set MAIN User MSG Text
                 print "post subject is: %s" % curr_post.subject
                 post_short_tag = "'%s...'" % curr_post.subject[0:20]
-                self.set_main_msg("Please Login to EDIT post: %s" % post_short_tag)
+                self.set_main_msg("Please <a href='/blog/login'>Login</a> to EDIT post: %s" % post_short_tag)
                 #self.session['main_user_msgs'] = "Please Login to EDIT post: %s" % post_short_tag
 
                 print "After EDIT click, session data is: %s" % self.session
+
+                # Set error message to NOT viewed
+                self.session["errors_viewed"] = 0 
                 
                 # Update STORED Jinja global session variable (for potential use in templates)
                 self._set_jinja_variable_session()
-
-                self.redirect("/blog")
+                
+                #self.redirect("/blog")  #Redirecting to Login instead
+                self.redirect("/blog/login")
             except:
                 print "Cannot add session variable in Edit Post"
         
@@ -532,6 +606,8 @@ class PostHandler(Handler):
                     self.session['post_%s_form_error' % post.key().id()] = ""
             except:
                 print "FAILURE clearing Post Form Errors..."
+            finally:
+                self._set_jinja_variable_session()
 
         print "Exiting clear_postform_errors()"
         
@@ -547,6 +623,35 @@ class NewPost(Handler):
         self.redirect("/blog/%s" % p.key().id())
 
     def get(self):
+        print "IN: NewPost.Handler()"
+
+        last_handler = None
+        errors_viewed = 0
+        try:
+            last_handler = self.session["curr_handler"]
+            errors_viewed = self.session["errors_viewed"]
+        except:
+            print "No Last Handler or Errors Viewed values exist"
+        finally:
+            self.session["curr_handler"] = "NewPost"
+
+        # Refresh our stored Jinja inkpenbam_session variable
+        stored_jinja_session = self._get_jinja_variable_session()
+        if stored_jinja_session == None:
+            self._set_jinja_variable_session()
+
+        # Get referrer source
+        source = self.get_ref_source()
+
+        if source != None:
+            if errors_viewed == 1:
+                # Clear our previous session messages to display clean page
+                print "Previously displayed errors. So clearing..."
+                self.clear_main_msg()
+
+        # Get User Messages to display if applicable
+        main_user_msgs = self.get_main_msg()
+
         # See if User is logged on, if Not then Redirect to Signup Page
         user_logged_in = False
         user_valid = False
@@ -562,12 +667,21 @@ class NewPost(Handler):
             if user:
                 user_valid = True
                 # Allow redirection to NEW Post page
-                self.render("newpost.html", subject_validation="", content_validation="")
+                self.render("newpost.html", subject_validation="", content_validation="", main_user_msgs=main_user_msgs)
             else:
                 print "Cookie invalid @ NewPost handler!"
 
+        # Mark any Error msgs as viewed if applicable
+        if self.get_main_msg != None and self.get_main_msg != "":
+            self.session["errors_viewed"] = 1
+            self._set_jinja_variable_session()
+
         if user_logged_in == False or user_valid == False:
-            self.redirect("/blog/signup")
+            #self.redirect("/blog/signup") # redirecting to login instead
+            self.set_main_msg("You need to <a href='/blog/login'>Login</a> to ADD a post.")
+            self.session["errors_viewed"] = 0
+            self._set_jinja_variable_session()
+            self.redirect("/blog/login")
 
     def post(self):
         created_by = None
@@ -612,12 +726,41 @@ Main BLOG Front Page Handler
 class Blog(Handler):
     def get(self):
         print "IN: Blog.Handler()"
-        self.session["curr_handler"] = "Blog"
+        
+        last_handler = None
+        errors_viewed = 0
+        try:
+            last_handler = self.session["curr_handler"]
+            errors_viewed = self.session["errors_viewed"]
+        except:
+            print "No Last Handler or Errors Viewed values exist"
+        finally:
+            self.session["curr_handler"] = "Blog"
 
         # Convenience stored Jinja session global for potential use in templates
         stored_jinja_session = self._get_jinja_variable_session()
         if stored_jinja_session == None:
             stored_jinja_session = self._set_jinja_variable_session()
+
+        # Check Referrer to display appropriate Errors and Messages
+        source = self.get_ref_source()
+        """ # DELETE IF WORKS
+        source = None
+        try:
+            ref = self.request.referrer.split('http://')[1]
+            first_slash = ref.find('/')
+            source = ref[first_slash: ]
+        except: 
+            print "Can't parse HTTP Referrer."
+        finally:
+            print source
+        """
+
+        if source != None:
+            if errors_viewed == 1:
+                # Clear our previous session messages to display clean page
+                print "Previously display errors. So clearing...."
+                self.clear_main_msg()
 
         #my_session = self.session
         main_user_msgs = self.get_main_msg()
@@ -634,8 +777,24 @@ class Blog(Handler):
         if posts.get() != None:
             print "We have Posts"
             posts_exist = True
+
+            if source!= None:
+                if errors_viewed == 1:
+                    #Clear out previous Individual Post Error messages
+                    print "Previous post errors exist... Cleaning up..."
+                
+                    for p in posts:
+                        try:
+                            self.session['post_%s_form_error' % p.key().id()] = ""
+                        except:
+                            "Cannot blank individual post session error..."
+                        finally:
+                            self._set_jinja_variable_session()
+
+            # Render our page
             self.render("blog.html", posts=posts, curr_session=stored_jinja_session, main_user_msgs=main_user_msgs)
-    
+
+        # Redirect as necessary if we have a Valid User Logged In
         user_logged_in = False
         user_valid = False
         user_info = UserHandler().user_logged_in(self)
@@ -653,6 +812,12 @@ class Blog(Handler):
         if (user_logged_in == False or user_valid == False) and posts_exist == False:
             self.redirect("/blog/signup")
 
+        # Mark any Error msgs as viewed if applicable
+        if self.get_main_msg != None and self.get_main_msg != "":
+            self.session["errors_viewed"] = 1
+            self._set_jinja_variable_session()
+
+    # Unused
     def post(self):
         self.render("blog.html")
 
@@ -696,10 +861,40 @@ class Welcome(Handler):
 class Login(Handler):
     def get(self):
         print "IN: Login.Handler()"
-        self.session["curr_handler"] = "Login"
-        self._set_jinja_variable_session()
         
-        self.render("login.html", validation_error="")
+        last_handler = None
+        errors_viewed = 0
+        try:
+            last_handler = self.session["curr_handler"]
+            errors_viewed = self.session["errors_viewed"]
+        except:
+            print "No Last Handler or Errors Viewed values exist"
+        finally:
+            self.session["curr_handler"] = "Login"
+        
+        # Refresh our stored Jinja inkpenbam_session variable
+        stored_jinja_session = self._get_jinja_variable_session()
+        if stored_jinja_session == None:
+            self._set_jinja_variable_session()
+
+        # Get referrer source
+        source = self.get_ref_source()
+
+        if source!= None:
+            if errors_viewed == 1:
+                # Clear our previous session messages to display clean page
+                print "Previously displayed errors. So clearing..."
+                self.clear_main_msg()
+
+        # Get User Messages for display, if applicable
+        main_user_msgs = self.get_main_msg()
+        
+        self.render("login.html", validation_error="", main_user_msgs=main_user_msgs)
+
+        # Mark any Error msgs as viewed if applicable
+        if self.get_main_msg != None and self.get_main_msg != "":
+            self.session["errors_viewed"] = 1
+            self._set_jinja_variable_session()
 
     def post(self):
         username = self.request.get("username")
@@ -754,9 +949,11 @@ class BlogRouter(Handler):
     def get(self):
         self.redirect("/blog")
 
+SECRET_KEY = Hasher().get_secret_key()
+
 config = {}
 config['webapp2_extras.sessions'] = {
-    'secret_key': '3RJhyOejffiSRd6wsXkmpMKZSA5ob9keljXUcdPkdc4=',
+    'secret_key': '%s' % SECRET_KEY,
 }
 config['TEMPLATES_AUTO_RELOAD'] = True
 

@@ -12,6 +12,10 @@ body {
 	width: 100%;
 	display: block;
 }
+.main-user-msgs a {
+	text-decoration: none;
+	color: #CFB208;
+}
 .post-forms-error {
 	padding-top: 6px;
 	color: red;
