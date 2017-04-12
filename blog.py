@@ -10,6 +10,9 @@ import jinja2
 # Google App Engine DataStore
 from google.appengine.ext import db
 
+# webapp2 simple sessions
+from webapp2_extras import sessions
+
 # Template directory specific
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
@@ -70,6 +73,88 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.response.write(self.render_str(template, **kw))
 
+    """
+    TOP Main User MSG Handling
+    """
+    def get_main_msg(self):
+        print "GET main msgs called..."
+        # Get the current main MSG
+        try:
+            return self.session['main_user_msgs']
+        except:
+            print "No main_user_msgs set. Setting EMPTY value..."
+            self.session['main_user_msgs'] = ""
+            return self.session['main_user_msgs']
+    
+    def set_main_msg(self, msg):
+        print "SET main msgs called..."
+        # Set the msg
+        try:
+            self.session['main_user_msgs'] = msg
+            print "Set main_user_msgs to: %s" % self.get_main_msg()
+        except:
+            print "Error setting 'main_user_msgs'..."
+
+    def clear_main_msg(self): 
+        print "Clear main msgs called..."
+        # Set MAIN User MSG Text to ""
+        try:
+            self.session['main_user_msgs'] = ""
+        except:
+            print "Session object doesn't exist yet...."
+    
+    """
+    Session MGMT Specific
+    See the DOCs: http://webapp2.readthedocs.io/en/latest/api/webapp2_extras/sessions.html
+    """
+
+    def _get_jinja_variable_session(self):
+        print "IN: Handler()._get_session()"
+        # Get Jinja Global Environment Session object
+        my_session = None
+        try:
+            print "Curr cookie is: %s" % self.request.cookies.get('session')
+        
+            if self.request.cookies.get('session') == None:
+                print("'session' COOKIE data does not exist yet...so deleting any leftover Jinja Globals")
+                del jinja_env.globals['inkpenbam_session']
+
+            my_session = jinja_env.globals['inkpenbam_session']
+        except:
+            print "No Jinja global 'session' exists to GET"
+        finally:
+            print "Exiting _get_session Request"
+            return my_session
+
+    def _set_jinja_variable_session(self):
+        # SET Jinja Global Environment Session object (Needs to be updated before used in a View)
+        print "...attempting to set Session object"
+        try: 
+            #self.response.delete_cookie('session', path='/')
+            #self.response.set_cookie('session', path='/')
+            jinja_env.globals['inkpenbam_session'] = self.session
+            return jinja_env.gloabls['inkpenbam_session']
+        except:
+            print "Error setting session in Handler()._set_session"
+        finally:
+            print "Exiting _set_session Request"
+    
+    def dispatch(self):
+        # Get a sessions store for request
+        self.session_store = sessions.get_store(request=self.request)
+
+        try:
+            # Dispatch request
+            webapp2.RequestHandler.dispatch(self)
+        finally:
+            # Save session
+            self.session_store.save_sessions(self.response)
+
+    @webapp2.cached_property
+    def session(self):
+        # Returns a session using the default cookie key
+        return self.session_store.get_session()
+
 """
 USER App Engine Entity (Model) for persistance
 """
@@ -101,11 +186,28 @@ class UserHandler():
     def set_cookie(self, web_obj, user):
         cookie_data = "%s|%s" % (str(user.username), str(user.password))
         web_obj.response.headers.add_header('Set-Cookie', 'user_id=%s; path=/;' % cookie_data)
+
+        # Duplicate this data in 'session' cookie for testing webapp2 simple sessions
+        web_obj.session['username'] = user.username
+        # Set some additional DEFAULT 'session' cookie variables
+        #web_obj.session['post_5901353784180736_form_error'] = "Test"
+
+        # Additionally set Jinja Global Environment to contain session data, If Not YET Set
+        my_session = None
+        try:
+            my_session = jinja_env.globals['inkpenbam_session']
+        except:
+            jinja_env.globals['inkpenbam_session'] = web_obj.session
+
         if cookie_data != None:
             return True
 
     def delete_cookie(self, web_obj, user):
         web_obj.response.delete_cookie('user_id', path='/')
+        
+        # Also delete our TEST session cookie
+        web_obj.response.delete_cookie('session', path='/')
+       
         return True
 
     # Signup/Registration Form Specific helper functions
@@ -181,6 +283,10 @@ class UserHandler():
 
 class UserSignup(Handler):
     def get(self):
+        print "IN: UserSignup.Handler()"
+        self.session["curr_handler"] = "UserSignup"
+        self._set_jinja_variable_session()
+        
         self.render("user-signup.html", username_validation="", password_validation="", 
                     verify_validation="", email_validation="")
 
@@ -269,23 +375,166 @@ class PostHandler(Handler):
             if method == "DELETE":
                 # Delete our Post
                 self.delete_post(post_id)
+            elif method == "EDIT":
+                # Edit out Post
+                self.edit_post(post_id)
 
     def delete_post(self, post_id):
-        post = Post.get_by_id(long(post_id))
-
-        if post != None:
-            post.delete()
-    
-        # Check to make sure post is deleted
-        post_check = Post.get_by_id(long(post_id))
-        print "Post Check returned: %s" % post_check
+        print "IN: PostHandler().delete_post()"
+        self.session["curr_handler"] = "PostHandler"
         
-        # Redirect if Post instance deleted successfully
-        if post_check == None:
-            self.redirect("/blog")
-        else:
-            print "DELETE of POST instance failed!"
+        curr_post = Post.get_by_id(long(post_id))
 
+        post_form_error = ""
+        try:
+            if self.session != None:
+                if self.session['post_%s_form_error' % post_id] != None:
+                    # Clear our Post Form Errors
+                    self.clear_postform_errors(post_id)
+            # Clear our Main MSG area
+            self.clear_main_msg()
+        except:
+            print "Nothing exists in POST_FORM_ERROR value in session."
+
+        print ("DELETE Post received")
+        
+        # Check for logged in/ valid user
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+        user = None
+
+        if user_info:
+            user_logged_in = True
+            user = UserHandler().user_loggedin_valid(self, user_info)
+            if user:
+                user_valid = True
+            else:
+                print "Cookie invalid @ PostHandler!"
+
+        if user_logged_in == False or user_valid == False:
+            print "Either NOT Logged In, or Not VALID..."
+            # Clear existing session data (as not logged in)
+            try:
+                # Reset message for Clicked Post
+                self.session['post_%s_form_error' % post_id] = "DELETE requires Login!"
+
+                # Set MAIN User MSG Text
+                print "post subject is: %s" % curr_post.subject
+                post_short_tag = "'%s...'" % curr_post.subject[0:20]
+                self.set_main_msg("Please Login to DELETE post: %s" % post_short_tag)
+                #self.session['main_user_msgs'] = "Please Login to EDIT post: %s" % post_short_tag
+
+                print "After DELETE click, session data is: %s" % self.session
+                
+                # Update STORED Jinja global session variable (for potential use in templates)
+                self._set_jinja_variable_session()
+
+                self.redirect("/blog")
+            except:
+                print "Cannot add session variable in DELETE Post"
+        
+            print "USER Not Logged in....for DELETE" 
+        
+        if user_logged_in == True and user_valid == True:
+            # Then we have a user valid user logged in and can proceed toward deleting post
+
+            # Check that DELETE clicker is POST created_by OWNER
+            if post.created_by == user.username:
+                print "User is OWNER of Post. *CAN* Delete"
+                # Post Deletion
+                if post != None:
+                    post.delete()
+            
+                # Check to make sure post is deleted
+                post_check = Post.get_by_id(long(post_id))
+                print "Post Check returned: %s" % post_check
+                
+                # Redirect if Post instance deleted successfully
+                if post_check == None:
+                    self.redirect("/blog")
+                else:
+                    print "DELETE of POST instance failed!"
+            else:
+                print "*ERROR in DELETING post with logged in AND valid user*"
+
+    def edit_post(self, post_id):
+        print "IN: PostHandler().edit_post()"
+        self.session["curr_handler"] = "PostHandler"
+        
+        curr_post = Post.get_by_id(long(post_id))
+
+        post_form_error = ""
+        try:
+            if self.session != None:
+                if self.session['post_%s_form_error' % post_id] != None:
+                    post_form_error = self.session['post_%s_form_error' % post_id]
+                
+                    print "*Post_FORM_ERROR: %s" % post_form_error
+                    
+                    # Clear Post Form Errors
+                    self.clear_postform_errors(post_id)
+                    
+            # Clear our Main MSG area
+            self.clear_main_msg()
+           # self.session['main_user_msgs'] = ""
+        except:
+            print "Nothing exists in POST_FORM_ERROR value in session."
+
+        print ("EDIT Post received")
+        print ("post_form_error val currently set to: " + post_form_error)
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+
+        if user_info:
+            user_logged_in = True
+            user = UserHandler().user_loggedin_valid(self, user_info)
+            if user:
+                user_valid = True
+            else:
+                print "Cookie invalid @ PostHandler!"
+
+        if user_logged_in == False or user_valid == False:
+            print "Either NOT Logged In, or Not VALID...."
+            # Clear existing session data (as not logged in)
+            try:
+                # Reset message for Clicked Post
+                self.session['post_%s_form_error' % post_id] = "Must Login to EDIT!"
+
+                # Set MAIN User MSG Text
+                print "post subject is: %s" % curr_post.subject
+                post_short_tag = "'%s...'" % curr_post.subject[0:20]
+                self.set_main_msg("Please Login to EDIT post: %s" % post_short_tag)
+                #self.session['main_user_msgs'] = "Please Login to EDIT post: %s" % post_short_tag
+
+                print "After EDIT click, session data is: %s" % self.session
+                
+                # Update STORED Jinja global session variable (for potential use in templates)
+                self._set_jinja_variable_session()
+
+                self.redirect("/blog")
+            except:
+                print "Cannot add session variable in Edit Post"
+        
+            print "USER Not Logged in....for EDIT" 
+
+    def clear_postform_errors(self, post_id):
+        print "Clearing any PREVIOUSLY set post_form_error for Posts"
+
+        posts = Post.all()
+        for post in posts:
+            try:
+                print post.key().id()
+                if post_id == post.key().id():
+                    post_form_error = self.session['post_%s_form_error' % post.key().id()]
+                else:
+                    self.session['post_%s_form_error' % post.key().id()] = ""
+            except:
+                print "FAILURE clearing Post Form Errors..."
+
+        print "Exiting clear_postform_errors()"
+        
 """
 NEW Post URL Handler, for our blog post additions
 """
@@ -362,6 +611,20 @@ Main BLOG Front Page Handler
 """
 class Blog(Handler):
     def get(self):
+        print "IN: Blog.Handler()"
+        self.session["curr_handler"] = "Blog"
+
+        # Convenience stored Jinja session global for potential use in templates
+        stored_jinja_session = self._get_jinja_variable_session()
+        if stored_jinja_session == None:
+            stored_jinja_session = self._set_jinja_variable_session()
+
+        #my_session = self.session
+        main_user_msgs = self.get_main_msg()
+        
+        print "My Jinja stored session details after get/set _session are: %s" % stored_jinja_session
+        print "Comparing... LIVE session: %s" % self.session
+
         posts_exist = False
         posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
         # Output post.ids for debugging
@@ -371,7 +634,7 @@ class Blog(Handler):
         if posts.get() != None:
             print "We have Posts"
             posts_exist = True
-            self.render("blog.html", posts=posts)
+            self.render("blog.html", posts=posts, curr_session=stored_jinja_session, main_user_msgs=main_user_msgs)
     
         user_logged_in = False
         user_valid = False
@@ -432,6 +695,10 @@ class Welcome(Handler):
     
 class Login(Handler):
     def get(self):
+        print "IN: Login.Handler()"
+        self.session["curr_handler"] = "Login"
+        self._set_jinja_variable_session()
+        
         self.render("login.html", validation_error="")
 
     def post(self):
@@ -487,6 +754,12 @@ class BlogRouter(Handler):
     def get(self):
         self.redirect("/blog")
 
+config = {}
+config['webapp2_extras.sessions'] = {
+    'secret_key': '3RJhyOejffiSRd6wsXkmpMKZSA5ob9keljXUcdPkdc4=',
+}
+config['TEMPLATES_AUTO_RELOAD'] = True
+
 app = webapp2.WSGIApplication([
     ('/blog', Blog),
     ('/blog/signup', UserSignup),
@@ -497,4 +770,4 @@ app = webapp2.WSGIApplication([
     ('/blog/*', BlogRouter),
     ('/*', BlogRouter),
     webapp2.Route(r'/blog/<post_id:\d+>', handler=PostHandler, name='post'),
-], debug=True)
+], config=config, debug=True)

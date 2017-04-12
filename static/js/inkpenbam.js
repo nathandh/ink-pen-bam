@@ -4,7 +4,32 @@ function getCookieData(cookie){
 	console.log("In getCookieData....");
 	console.log("Received cookie: " + cookie);
 
-	var cookie_data = cookie.split('|');
+	// First split on ';' to seperate out 'user_id' and 'session' cookies
+	var all_cookies = cookie.split(';');
+	
+	// Extract the 'user_id' cookie for our purposes
+	var userid_cookie = null;	
+	for (var i = 0; i < all_cookies.length; i++){
+		var curr_cookie = all_cookies[i];
+		console.log("Examining curr cookie: " + curr_cookie);
+		
+		var curr_cookie_vals = curr_cookie.split('|');
+		var curr_cookie_name = curr_cookie_vals[0].split('=')[0]
+
+		console.log("Current COOKIE name: " + curr_cookie_name.trim());
+		if (curr_cookie_name === "user_id"){
+			// Set out userid_cookie variable 
+			userid_cookie = all_cookies[i];
+			console.log("Grabbed cookie: " + userid_cookie);
+			break;
+		}
+	}
+	
+	if (userid_cookie == null){
+		return null;
+	}
+
+	var cookie_data = userid_cookie.split('|');
 	var user = cookie_data[0].split('=')[1]
 	var pass_hash = cookie_data[1]
 
@@ -22,7 +47,11 @@ function displayLoggedIn_User(){
 
 		// Get document.cookie values
 		var cookie_val = getCookieData(document.cookie);
-		console.log("Got Cookie Values: " + cookie_val);
+		console.log("Got 'user_id' Cookie Values: " + cookie_val);
+		if (cookie_val == null){
+			// Just exit and return null
+			return null;
+		}
 
 		// Update DIV on page to display LoggedIn User
 		var divClasses = signup_login_div.classList;
