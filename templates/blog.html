@@ -6,8 +6,12 @@
 
 
 {% block content %}
-	<a href="/blog/newpost"><div class="newpost_link">add NEW post</div></a>
-	{% for post in posts %}
-		{{post.render() | safe}}
-	{% endfor %}
+	<div class="blog-home-container">
+		{% include 'navmenu.html' %}
+		<div class="blog-home">
+			{% for post in posts %}
+				{{post.render() | safe}}
+			{% endfor %}
+		</div>
+	</div>
 {% endblock %}

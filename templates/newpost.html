@@ -5,22 +5,28 @@
 {% endblock %}
 
 {% block content %}
-	<div class="newpost">
-	<h3>new post</h3>
-		<form method="post" id="newpost_form">
-			<label for="subject">subject</label>
-			<input type="text" name="subject" value="{{subject}}">
-			<div class="error">
-				{{subject_validation}}
-			</div>
-			
-			<label for="content">blog</label>
-			<textarea name="content">{{content}}</textarea>
-			<div class="error">
-				{{content_validation}}
-			</div>
+	<div class="newpost-container">
+		{% include 'navmenu.html' %}
+		<hr>
+		<div class="newpost-content">	
+			<div class="newpost">
+			<h3>Add a Post</h3>
+				<form method="post" id="newpost_form">
+					<label for="subject">Subject</label>
+					<input type="text" name="subject" value="{{subject}}">
+					<div class="error">
+						{{subject_validation}}
+					</div>
+					
+					<label for="content">Post</label>
+					<textarea name="content">{{content}}</textarea>
+					<div class="error">
+						{{content_validation}}
+					</div>
 
-			<input id="newpost-submit" type="submit" value="Submit">
-		</form>
-	</div>	
+					<input id="newpost-submit" type="submit" value="Submit">
+				</form>
+			</div>
+		</div>
+	</div>
 {% endblock %}

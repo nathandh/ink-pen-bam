@@ -2,7 +2,7 @@
 # Udacity - FullStack Nano Degree 
 # 
 # Intro To Backend - BLOG App
-import os, string, re
+import os, string, re, datetime
 import hashlib, random
 import webapp2
 import jinja2
@@ -106,7 +106,7 @@ class Handler(webapp2.RequestHandler):
             print "No main_user_msgs set. Setting EMPTY value..."
             self.session['main_user_msgs'] = ""
             return self.session['main_user_msgs']
-    
+
     def set_main_msg(self, msg):
         print "SET main msgs called..."
         # Set the msg
@@ -123,6 +123,33 @@ class Handler(webapp2.RequestHandler):
             self.session['main_user_msgs'] = ""
         except:
             print "Session object doesn't exist yet...."
+
+    def get_msg_type(self):
+        print "GET msg type called..."
+        # Get the current MSG type if available
+        try:
+            return self.session['msg_type']
+        except:
+            print "No msg_type is set... Setting Empty Value (will default to NOTICE type)..."
+            self.session['msg_type'] = ""
+            return self.session['msg_type']
+    
+    def set_msg_type(self, msg_type):
+        print "SET msg_type called..."
+        # Set out type
+        try: 
+            self.session['msg_type'] = msg_type
+            print "Set msg_type to: %s" % self.get_msg_type()
+        except:
+            print "Error setting 'msg_type'...."
+
+    def clear_msg_type(self):
+        print "Clear msg_type called..."
+        # Set Default msg_type
+        try:
+            self.session['msg_type'] = ""
+        except:
+            print "Session object doesn't exist yet..."
 
     """
     Gets the referrer source from headers, parses and returns it
@@ -321,11 +348,26 @@ class UserSignup(Handler):
     def get(self):
         print "IN: UserSignup.Handler()"
 
+        # 1st Check if User Logged on AND Valid. If so, redirect to /blog/welcome
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+
+        if user_info:
+            user_logged_in = True
+            user = UserHandler().user_loggedin_valid(self, user_info)
+
+            if user:
+                print ("We have a USER that is LOGGED In and Valid")
+                user_valid = True
+                self.redirect("/blog/welcome")
+
+        # Proceed with standard UserSignup process
         last_handler = None
-        errors_viewed = 0
+        messages_viewed = 0
         try:
             last_handler = self.session["curr_handler"]
-            errors_viewed = self.session["errors_viewed"]
+            messages_viewed = self.session["messages_viewed"]
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
@@ -340,20 +382,21 @@ class UserSignup(Handler):
         source = self.get_ref_source()
 
         if source!= None:
-            if errors_viewed == 1:
+            if messages_viewed == 1:
                 # Clear our previous session messages to display clean page
                 print "Previously displayed errors. So clearing..."
                 self.clear_main_msg()
         
         # Get User Messages for display, if applicable
         main_user_msgs = self.get_main_msg()
+        msg_type = self.get_msg_type()
         
         self.render("user-signup.html", username_validation="", password_validation="", 
-                    verify_validation="", email_validation="", main_user_msgs=main_user_msgs)
+                    verify_validation="", email_validation="", main_user_msgs=main_user_msgs, msg_type=msg_type)
 
         # Mark any Error msgs as viewed if applicable
         if self.get_main_msg != None and self.get_main_msg != "":
-            self.session['errors_viewed'] = 1
+            self.session['messages_viewed'] = 1
             self._set_jinja_variable_session()
 
     def post(self):
@@ -489,12 +532,13 @@ class PostHandler(Handler):
                 print "post subject is: %s" % curr_post.subject
                 post_short_tag = "'%s...'" % curr_post.subject[0:20]
                 self.set_main_msg("Please <a href='/blog/login'>Login</a> to DELETE post: %s" % post_short_tag)
+                self.set_msg_type("error")
                 #self.session['main_user_msgs'] = "Please Login to EDIT post: %s" % post_short_tag
 
                 print "After DELETE click, session data is: %s" % self.session
 
                 # Set error message to NOT viewed
-                self.session["errors_viewed"] = 0 
+                self.session["messages_viewed"] = 0 
                 
                 # Update STORED Jinja global session variable (for potential use in templates)
                 self._set_jinja_variable_session()
@@ -576,12 +620,13 @@ class PostHandler(Handler):
                 print "post subject is: %s" % curr_post.subject
                 post_short_tag = "'%s...'" % curr_post.subject[0:20]
                 self.set_main_msg("Please <a href='/blog/login'>Login</a> to EDIT post: %s" % post_short_tag)
+                self.set_msg_type("error")
                 #self.session['main_user_msgs'] = "Please Login to EDIT post: %s" % post_short_tag
 
                 print "After EDIT click, session data is: %s" % self.session
 
                 # Set error message to NOT viewed
-                self.session["errors_viewed"] = 0 
+                self.session["messages_viewed"] = 0 
                 
                 # Update STORED Jinja global session variable (for potential use in templates)
                 self._set_jinja_variable_session()
@@ -626,10 +671,10 @@ class NewPost(Handler):
         print "IN: NewPost.Handler()"
 
         last_handler = None
-        errors_viewed = 0
+        messages_viewed = 0
         try:
             last_handler = self.session["curr_handler"]
-            errors_viewed = self.session["errors_viewed"]
+            messages_viewed = self.session["messages_viewed"]
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
@@ -644,13 +689,14 @@ class NewPost(Handler):
         source = self.get_ref_source()
 
         if source != None:
-            if errors_viewed == 1:
+            if messages_viewed == 1:
                 # Clear our previous session messages to display clean page
                 print "Previously displayed errors. So clearing..."
                 self.clear_main_msg()
 
         # Get User Messages to display if applicable
         main_user_msgs = self.get_main_msg()
+        msg_type = self.get_msg_type()
 
         # See if User is logged on, if Not then Redirect to Signup Page
         user_logged_in = False
@@ -667,19 +713,20 @@ class NewPost(Handler):
             if user:
                 user_valid = True
                 # Allow redirection to NEW Post page
-                self.render("newpost.html", subject_validation="", content_validation="", main_user_msgs=main_user_msgs)
+                self.render("newpost.html", subject_validation="", content_validation="", main_user_msgs=main_user_msgs, msg_type=msg_type)
             else:
                 print "Cookie invalid @ NewPost handler!"
 
         # Mark any Error msgs as viewed if applicable
         if self.get_main_msg != None and self.get_main_msg != "":
-            self.session["errors_viewed"] = 1
+            self.session["messages_viewed"] = 1
             self._set_jinja_variable_session()
 
         if user_logged_in == False or user_valid == False:
             #self.redirect("/blog/signup") # redirecting to login instead
             self.set_main_msg("You need to <a href='/blog/login'>Login</a> to ADD a post.")
-            self.session["errors_viewed"] = 0
+            self.set_msg_type("error")
+            self.session["messages_viewed"] = 0
             self._set_jinja_variable_session()
             self.redirect("/blog/login")
 
@@ -728,10 +775,10 @@ class Blog(Handler):
         print "IN: Blog.Handler()"
         
         last_handler = None
-        errors_viewed = 0
+        messages_viewed = 0
         try:
             last_handler = self.session["curr_handler"]
-            errors_viewed = self.session["errors_viewed"]
+            messages_viewed = self.session["messages_viewed"]
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
@@ -757,14 +804,15 @@ class Blog(Handler):
         """
 
         if source != None:
-            if errors_viewed == 1:
+            if messages_viewed == 1:
                 # Clear our previous session messages to display clean page
                 print "Previously display errors. So clearing...."
                 self.clear_main_msg()
 
         #my_session = self.session
         main_user_msgs = self.get_main_msg()
-        
+        msg_type = self.get_msg_type()
+
         print "My Jinja stored session details after get/set _session are: %s" % stored_jinja_session
         print "Comparing... LIVE session: %s" % self.session
 
@@ -779,7 +827,7 @@ class Blog(Handler):
             posts_exist = True
 
             if source!= None:
-                if errors_viewed == 1:
+                if messages_viewed == 1:
                     #Clear out previous Individual Post Error messages
                     print "Previous post errors exist... Cleaning up..."
                 
@@ -792,7 +840,7 @@ class Blog(Handler):
                             self._set_jinja_variable_session()
 
             # Render our page
-            self.render("blog.html", posts=posts, curr_session=stored_jinja_session, main_user_msgs=main_user_msgs)
+            self.render("blog.html", posts=posts, curr_session=stored_jinja_session, main_user_msgs=main_user_msgs, msg_type=msg_type)
 
         # Redirect as necessary if we have a Valid User Logged In
         user_logged_in = False
@@ -814,7 +862,7 @@ class Blog(Handler):
 
         # Mark any Error msgs as viewed if applicable
         if self.get_main_msg != None and self.get_main_msg != "":
-            self.session["errors_viewed"] = 1
+            self.session["messages_viewed"] = 1
             self._set_jinja_variable_session()
 
     # Unused
@@ -824,6 +872,36 @@ class Blog(Handler):
         
 class Welcome(Handler):
     def get(self):
+        print "IN: Welcome.Handler()"
+
+        last_handler = None
+        messages_viewed = 0
+        try:
+            last_handler = self.session["curr_handler"]
+            messages_viewed = self.session["messages_viewed"]
+        except:
+            print "No Last Handler or Errors Viewed values exist"
+        finally:
+            self.session["curr_handler"] = "Welcome"
+
+        # Refresh our stores Jinja inkpenbam session variabl
+        stored_jinja_session = self._get_jinja_variable_session()
+        if stored_jinja_session == None:
+            self._set_jinja_variable_session()
+
+        # Get referrer source
+        source = self.get_ref_source()
+
+        if source != None:
+            if messages_viewed == 1:
+                # Clear our previous session messages to display a clean page
+                print "Previously displayed messages. So clearing..."
+                self.clear_main_msg()
+
+        # Get User Messages to display, if applicable
+        main_user_msgs = self.get_main_msg()
+        msg_type = self.get_msg_type()
+
         # For Tabbed Content on Welcome page, Default is None
         all_posts = None
         user_logged_posts = None
@@ -846,27 +924,66 @@ class Welcome(Handler):
                 # Get All Posts BY USER
                 user_logged_posts = db.GqlQuery("SELECT * FROM Post WHERE created_by = :created_by ORDER BY created DESC", created_by=username)
 
+                if user_logged_posts.get() == None:
+                    print "No User POSTS exist...."
+                    #TODO: add link to new post and display a messsage
+                    self.set_main_msg("Hmm...you have 0 posts. Please <a href='/blog/newpost'>add some</a>. :)")
+                    main_user_msgs = self.get_main_msg()
+                    msg_type = self.set_msg_type("notice")
+                    self.session["messages_viewed"] = 0
+                else:
+                    self.clear_main_msg()
+                    self.clear_msg_type()
+
+                # Ensure jinja session variables are in-sync
+                self._set_jinja_variable_session()
+
                 # Get ALL the POSTS
                 all_posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
 
+                #print "BEFORE render, main_user_msgs is: %s" % main_user_msgs 
+                # Get Current Date Time
+                current_date_time = datetime.datetime.utcnow()
+                
                 # Render our page
                 self.render("welcome.html", username=username, user_logged_posts=user_logged_posts, 
-                            all_posts=all_posts)
+                            all_posts=all_posts, main_user_msgs=main_user_msgs, msg_type=msg_type, 
+                            current_date_time=current_date_time)
         else:
             print "We don't have a cookie set yet!"
+
+        # Mark any Error msgs as viewed if applicable
+        if self.get_main_msg != None and self.get_main_msg != "":
+            self.session["messages_viewed"] = 1
+            self._set_jinja_variable_session()
             
+        # Redirect to signup page if USER is invalid or NOT Logged in
         if user_logged_in == False or user_valid == False:
             self.redirect("/blog/signup")
     
 class Login(Handler):
     def get(self):
         print "IN: Login.Handler()"
+
+        # 1st Check if User Logged on AND Valid. If so, redirect to /blog/welcome
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+
+        if user_info:
+            user_logged_in = True
+            user = UserHandler().user_loggedin_valid(self, user_info)
+
+            if user:
+                print ("We have a USER that is LOGGED In and Valid")
+                user_valid = True
+                self.redirect("/blog/welcome")
         
         last_handler = None
-        errors_viewed = 0
+        messages_viewed = 0
         try:
             last_handler = self.session["curr_handler"]
-            errors_viewed = self.session["errors_viewed"]
+            messages_viewed = self.session["messages_viewed"]
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
@@ -881,19 +998,20 @@ class Login(Handler):
         source = self.get_ref_source()
 
         if source!= None:
-            if errors_viewed == 1:
+            if messages_viewed == 1:
                 # Clear our previous session messages to display clean page
                 print "Previously displayed errors. So clearing..."
                 self.clear_main_msg()
 
         # Get User Messages for display, if applicable
         main_user_msgs = self.get_main_msg()
+        msg_type = self.get_msg_type()
         
-        self.render("login.html", validation_error="", main_user_msgs=main_user_msgs)
+        self.render("login.html", validation_error="", main_user_msgs=main_user_msgs, msg_type=msg_type)
 
         # Mark any Error msgs as viewed if applicable
         if self.get_main_msg != None and self.get_main_msg != "":
-            self.session["errors_viewed"] = 1
+            self.session["messages_viewed"] = 1
             self._set_jinja_variable_session()
 
     def post(self):

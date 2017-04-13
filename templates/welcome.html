@@ -5,28 +5,43 @@
 {% endblock %}
 
 {% block content %}
-	<h1>Welcome, {{username}}!</h1>
-	<hr>
-	<!-- Custom Tabbed Content for displaying User's Posts and ALL Posts -->
-	<div class="welcome-tabs">
-		<ul>
-			<li><a href="#my-posts" class="active">MY posts</a></li>
-			<li><a href="#all-posts">ALL posts</a></li>
-		</ul>
-		<div id="my-posts"><br />
-			<h3>*posts* for {{username}}</h3>
-			{% for post in user_logged_posts %}
-				{{post.render() | safe}}
-			{% endfor %}
-		</div>
-		<div id="all-posts"><br />
-			<h3>ALL *posts*</h3>
-			{% for post in all_posts %}
-				{{post.render() | safe}}
-			{% endfor %}
+	<div class="welcome-container">
+		{% include 'navmenu.html' %}
+		<hr>
+		<div class="welcome-content">
+			<div class="welcome-title"><h1>Welcome, {{username}}!</h1></div>
+			<div class="current-date-time">Last Activity: {{current_date_time.strftime("%b %d, %Y")}}</div>
+			<hr>
+			<!-- Custom Tabbed Content for displaying User's Posts and ALL Posts -->
+			<div class="welcome-tab-container">
+				<ul>
+					<li><a href="#my-posts" class="active">MY posts</a></li>
+					<li><a href="#all-posts">ALL posts</a></li>
+				</ul>
+				
+				<div id="my-posts">
+					<div class="my-posts-tab-header">
+						<!--<div class="posts-newposts"><a href="/blog/newpost">*add a POST</a></div>-->
+						<div class="my-posts-user"><h3>*posts* for {{username}}</h3></div>
+					</div>
+				
+					{% for post in user_logged_posts %}
+						{{post.render() | safe}}
+					{% endfor %}
+				</div>
+				<div id="all-posts">
+					<div class="all-posts-tab-header">
+						<!--<div class="posts-newposts"><a href="/blog/newpost">*add a POST</a></div>-->
+						<div class="all-posts-user"><h3>ALL *posts*</h3></div>
+					</div>
+					{% for post in all_posts %}
+						{{post.render() | safe}}
+					{% endfor %}
+				</div>
+			</div>
+
+			<!-- Extra javascript inclusion for Welcome page tabbed content -->
+			<script type="text/javascript" src="/js/welcome-page.js"></script>
 		</div>
 	</div>
-
-	<!-- Extra javascript inclusion for Welcome page tabbed content -->
-	<script type="text/javascript" src="/js/welcome-page.js"></script>
 {% endblock %}

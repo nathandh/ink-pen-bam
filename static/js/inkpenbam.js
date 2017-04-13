@@ -14,7 +14,7 @@ function getCookieData(cookie){
 		console.log("Examining curr cookie: " + curr_cookie);
 		
 		var curr_cookie_vals = curr_cookie.split('|');
-		var curr_cookie_name = curr_cookie_vals[0].split('=')[0]
+		var curr_cookie_name = curr_cookie_vals[0].split('=')[0].trim();
 
 		console.log("Current COOKIE name: " + curr_cookie_name.trim());
 		if (curr_cookie_name === "user_id"){
@@ -97,12 +97,139 @@ function displayLoggedIn_User(){
 	}
 }
 
+function addMenuSticky(){
+	console.log("In addMenuSticky....");
+	var navMenu = document.querySelector(".nav-menu");
+	console.log("Received navMenu item: " + navMenu);
+
+	var headerTop = document.querySelector(".header-top");
+	var header = document.querySelector(".header");
+	var headerBottom = document.querySelector(".header-bottom");
+	var title = document.querySelector(".title");
+	var mainUserMsgs = document.getElementById("main-user-msgs");
+	
+	var navLogo = document.querySelector(".nav-logo");
+	var homeLink = document.querySelector(".home-link");
+
+	var navMenuPos = 0;
+	try {
+		navMenuPos = headerTop.clientHeight + header.clientHeight + headerBottom.clientHeight 
+					+ title.clientHeight + mainUserMsgs.clientHeight;
+	} catch (e){
+		console.log(e);
+	}
+
+	console.log("navMenuPos calculated to be: " + navMenuPos);
+	
+	/* We know our standard header image has a height of 200
+	   and that the surrounding elements usually alot a
+	   total HEIGHT of 270px. In this case, if our calculated
+	   MenuPos is less that 270px, just use 270px as default
+	   for improved UserExperience. */
+	if (navMenuPos < 270){
+		navMenuPos = 270;
+	} else {
+		console.log("Our navMenuPos was calculated correct, and matched expectations!");
+	}
+
+	window.addEventListener("scroll", function navSticky(){
+		if(window.scrollY >= navMenuPos){
+			// Then we set menu item to nav fixed, top 0
+			navMenu.style.position = "fixed";
+			navMenu.style.top = "0px";
+			navMenu.style.zIndex = "1";
+
+			// Additionally change some Menu Display properties since we are in a scroll
+			try {
+				homeLink.classList.remove("home-link-visible");
+				navLogo.classList.remove("nav-logo-hidden");
+			} catch (e){
+				console.log(e);
+			}
+			homeLink.classList.add("home-link-hidden");
+			navLogo.classList.add("nav-logo-visible");
+		} else {
+			// Restore defaults
+			navMenu.style.position = "static";
+			navMenu.style.top = "";
+			navMenu.style.zIndex = "";
+
+			try {
+				navLogo.classList.remove("nav-logo-visible");
+				homeLink.classList.remove("home-link-hidden");
+			} catch (e){
+				console.log(e);
+			}
+			navLogo.classList.add("nav-logo-hidden");
+			homeLink.classList.add("home-link-visible");
+		}
+	});
+}
+
+function setPageCurrent(){
+	console.log("In setPageCurrent()...");
+	var navMenu = document.querySelector(".nav-menu");
+	var navMenuChildren = null;
+	var navMenuDivs = [];
+
+	navMenuChildren = navMenu.childNodes;
+	for (var i = 0; i < navMenuChildren.length; i++){
+		if (navMenuChildren[i].tagName == "DIV"){
+			console.log(navMenuChildren[i]);
+			navMenuDivs.push(navMenuChildren[i]);
+		}
+	}
+
+	console.log("navMenuDivs is now: " + navMenuDivs);
+	console.log(window.location.href);
+
+	var url = window.location.href;
+	var resource = url.split("://")[1].split("/");
+	console.log(resource);
+	console.log(resource.length);
+
+	if (resource.length === 2 && resource[1].includes("blog")){
+		console.log("We must be at the HOME Blog page!");
+		// Set HOME Menu Item to Active
+		navMenuDivs[1].classList.add("nav-menu-home-active");
+	} else if (resource.length > 2){
+		console.log("At an InkPenBam subpage....");
+		if (resource[2].includes("welcome")){
+			console.log("At Welcome Page...Setting as HOME Active, since this HOME for logged on User");
+			navMenuDivs[1].classList.add("nav-menu-item-active");
+			/* Hiding Signup and Login links
+			   since these pages are are not applicable to
+			   a logged in and valid user... */
+			   navMenuDivs[2].classList.add("nav-item-hidden");
+			   navMenuDivs[3].classList.add("nav-item-hidden");
+		} else if (resource[2].includes("signup")){
+			console.log("At Signup Page...Setting to Active...");
+			navMenuDivs[2].classList.add("nav-menu-item-active");
+		} else if (resource[2].includes("login")){
+			console.log("At Login Page...Setting to Active...");
+			navMenuDivs[3].classList.add("nav-menu-item-active");
+		} else if (resource[2].includes("newpost")){
+			console.log("At NEW Post page...setting to active...");
+			navMenuDivs[4].classList.add("nav-menu-item-active");
+			/* Hiding Signup and Login links
+			   since these pages are are not applicable to
+			   a logged in and valid user... */
+			   navMenuDivs[2].classList.add("nav-item-hidden");
+			   navMenuDivs[3].classList.add("nav-item-hidden");
+		} else {
+			console.log("Couldn't parse resource: " + resource);
+		}
+	}
+}
+
 // Document Ready Listener
 if (document.addEventListener){
 	document.addEventListener("DOMContentLoaded", function handler(){
 		document.removeEventListener("DOMContentLoaded", handler, false);
 		
 		displayLoggedIn_User();
+		addMenuSticky();
+		setPageCurrent();
 	}, false);
 //IE Special Case
 } else if (document.attachEvent){
@@ -111,6 +238,8 @@ if (document.addEventListener){
 			document.detachEvent("onreadystatechange", handler);
 			
 			displayLoggedIn_User();
+			addMenuSticky();
+			setPageCurrent();
 		}
 	});
 }

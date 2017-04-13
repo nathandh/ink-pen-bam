@@ -1,2 +1,5 @@
 # Exclude system/user dependent config files
 inkpenbam.key
+
+# Ignore any temporary swap files from VIM
+*.swp

@@ -1,7 +1,7 @@
 "use strict";
 
 function makeWelcomeTabs(){
-	var welcomeTabDIV = document.getElementsByClassName("welcome-tabs")[0];
+	var welcomeTabDIV = document.getElementsByClassName("welcome-tab-container")[0];
 	console.log("Received welcome tab element" + welcomeTabDIV);
 
 	var firstAnchor = null;

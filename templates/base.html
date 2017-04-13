@@ -22,7 +22,14 @@
 	<div class="header-bottom"><br/></div>
 	<div class="title"><a href="/blog"><h2>A Journey of Explosive Poetry</h2></a></div>
 	
-	<div id="main-user-msgs" class="main-user-msgs">{{ main_user_msgs | safe }}</div>
+	{% if msg_type == "error" %}
+		{% set msg_class_style = "main-user-error-msgs" %}
+	{% elif msg_type == "notice" %}
+		{% set msg_class_style = "main-user-notice-msgs" %}
+	{% else %}
+		{% set msg_class_style = "main-user-notice-msgs" %}
+	{% endif %}
+	<div id="main-user-msgs" class="{{msg_class_style}}">{{ main_user_msgs | safe }}</div>
 	
 	<div class="signup_login">
 		<a href="/blog/signup"><div class="signup_link">Signup</div></a>

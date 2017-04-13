@@ -5,24 +5,30 @@
 {% endblock %}
 
 {% block content %}
-	<div class="need-to_signup-link">
-		Need to Register? 
-		<a href="/blog/signup">Signup Here</a>
-	</div>
-	<h2>Login:</h2>
-	<form method="post" id="loginform">
-		<div class="top-login">
-			<label>Username: 
-				<input type="text" name="username" id="username" value="{{username}}">
-			</label>
-			<label>Password:	
-				<input type="password" name="password" id="password">
-			</label>
-		</div>
-		<div class="bottom-login">
-			<div class="login-error">{{login_error}}</div>
-		</div>
+	<div class="user-login-container">
+		{% include 'navmenu.html' %}
+		<hr>
+		<div class="user-login-content">
+			<div class="need-to_signup-link">
+				Need to Register? 
+				<a href="/blog/signup">Signup Here</a>
+			</div>
+			<h2>Login:</h2>
+			<form method="post" id="loginform">
+				<div class="top-login">
+					<label>Username: 
+						<input type="text" name="username" id="username" value="{{username}}">
+					</label>
+					<label>Password:	
+						<input type="password" name="password" id="password">
+					</label>
+				</div>
+				<div class="bottom-login">
+					<div class="login-error">{{login_error}}</div>
+				</div>
 
-		<input type="submit">
-	</form>
+				<input type="submit">
+			</form>
+		</div>
+	</div>
 {% endblock %}

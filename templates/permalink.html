@@ -6,8 +6,15 @@
 
 
 {% block content %}
-	<a href="/blog/newpost"><div class="newpost_link">add NEW post</div></a>
-	<div>
-		{{post.render() | safe}}
+	<div class="permalink-container">
+		{% include 'navmenu.html' %}
+		<hr>
+		<div class="permalink-home">
+			<div class="permalink-title">"{{post.subject}}"</div>
+			<div class="permalink-subtitle">Permalink Page</div>
+			<div>
+				{{post.render() | safe}}
+			</div>
+		</div>
 	</div>
 {% endblock %}
