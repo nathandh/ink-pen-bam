@@ -4,13 +4,12 @@
 	Ink, Pen, Bam! | Eplosive Poetry | HOME
 {% endblock %}
 
-
 {% block content %}
 	<div class="blog-home-container">
 		{% include 'navmenu.html' %}
 		<div class="blog-home">
 			{% for post in posts %}
-				{{post.render() | safe}}
+				{{post.render_short() | safe}}
 			{% endfor %}
 		</div>
 	</div>

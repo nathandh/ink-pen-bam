@@ -26,7 +26,7 @@
 					</div>
 				
 					{% for post in user_logged_posts %}
-						{{post.render() | safe}}
+						{{post.render_short() | safe}}
 					{% endfor %}
 				</div>
 				<div id="all-posts">
@@ -35,7 +35,7 @@
 						<div class="all-posts-user"><h3>ALL *posts*</h3></div>
 					</div>
 					{% for post in all_posts %}
-						{{post.render() | safe}}
+						{{post.render_short() | safe}}
 					{% endfor %}
 				</div>
 			</div>

@@ -479,6 +479,19 @@ class Post(db.Model):
         self._render_content = self.content.replace('\n', '<br />')
         return Handler().render_str("post.html", post=self)
 
+    def render_short(self):
+        # Shorten post content displayed (Except for permalink pages that use render() above)
+        content_max = 225
+
+        short_content = self.content.replace('\n', '<br />')
+        permalink = "/blog/%s" % self.key().id()
+        more_post_link = "&nbsp;<a href='%s'>...View More...</a>" % permalink
+        if len(short_content) > content_max:
+            short_content = short_content[:content_max] + more_post_link
+        
+        self._rendershort_content = short_content
+        return Handler().render_str("post-short.html", post=self)
+
 """
 Permalink Handler for individual posts permalink pages
 """

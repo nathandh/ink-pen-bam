@@ -13,7 +13,7 @@
 			{{post.created.strftime("%b %d, %Y | %-I:%M %p")}}
 		</div>
 
-		<div class="post-content">{{post._render_content | safe}}</div>
+		<div class="post-content">{{post._rendershort_content | safe}}</div>
 	</div>
 	{% set edit_form_id = "edit_%s_form" % post.key().id() %}
 	{% set delete_form_id = "delete_%s_form" % post.key().id() %}
