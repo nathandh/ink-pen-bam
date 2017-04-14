@@ -162,6 +162,21 @@ function addMenuSticky(){
 			}
 			navLogo.classList.add("nav-logo-hidden");
 			homeLink.classList.add("home-link-visible");
+
+			// Fix Welcome Tab DIVs classes if they exist on this page
+			// Since in 'welcome-page.js' we gave them room for our FIXED header
+			try {
+				var myPostsDIV = document.getElementById("my-posts");
+				var allPostsDIV = document.getElementById("all-posts");
+
+				if (myPostsDIV != null && allPostsDIV != null){
+					myPostsDIV.classList.remove("welcome-tab-target");
+					allPostsDIV.classList.remove("welcome-tab-target");
+				}
+			} catch(e) {
+				console.log("Error resetting Welcome Tab Target DIVs");
+				console.log(e);
+			}
 		}
 	});
 }

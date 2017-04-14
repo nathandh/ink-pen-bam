@@ -42,12 +42,16 @@ function makeWelcomeTabs(){
 				if (this.innerHTML === "MY posts"){
 					console.log("After click MyPosts tab is ACTIVE");
 					allPostsDIV.style.display = "none";
+					allPostsDIV.classList.remove("welcome-tab-target");
+					myPostsDIV.classList.add("welcome-tab-target");
 					myPostsDIV.style.display ="block";
 
 					secondAnchor.classList.remove("active");
 				} else if (this.innerHTML === "ALL posts"){
 					console.log("After click AllPosts tab is ACTIVE");
 					myPostsDIV.style.display = "none";
+					myPostsDIV.classList.remove("welcome-tab-target");
+					allPostsDIV.classList.add("welcome-tab-target");
 					allPostsDIV.style.display = "block";
 
 					firstAnchor.classList.remove("active");

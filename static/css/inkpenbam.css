@@ -316,6 +316,39 @@ body {
 	font-weight: bold;
 }
 
+/* EditPost Form Specific */
+.editpost-content {
+	padding: 12px;
+	margin-left: 8px;
+}
+.editpost {
+	margin: 0 auto;
+}
+.editpost label, .editpost input {
+	display: block;
+}
+.editpost input, .editpost textarea {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	margin-bottom: 5px;
+}
+.editpost input {
+	width: 75%;
+}
+.editpost textarea {
+	width: 75%;
+	height: 200px;
+	font-family: sans-serif;
+}
+#editpost-submit {
+	width: auto;
+}
+.editpost > form > .error {
+	color: red;
+	font-weight: bold;
+}
+
 /* Post EDIT and DELETE Forms */
 .post-edit-form, .post-delete-form {
 	display: inline;
@@ -375,6 +408,7 @@ body {
 .my-posts-user, .all-posts-user, .posts-newposts {
 	display: block;
 }
+
 .posts-newposts {
 	margin-top: .9em;
 	width: 95px;
@@ -430,6 +464,18 @@ body {
 	color: #212F3D;
 	border-bottom 0px;
 	font-weight: bold;
+}
+.welcome-tab-target:before {
+	/* Values are 0 here because it is mainly
+	   a fix for screens below 600px.
+	   This class is applied/removed to/from
+	   elements in our helper javascript files. */
+	height: 0px;
+	width:0;
+	display: block;
+	margin-top: -0px !important;
+	content: " ";
+	visibility: hidden;
 }
 
 /* Navigation Menu Specific */
@@ -604,6 +650,14 @@ input[type=submit], .btn-normal {
 		padding-left: 2px;
 		padding-right: 8px;
 	}
+	.welcome-tab-target:before {
+		height: 120px;
+		width:0;
+		display: block;
+		margin-top: -20px !important;
+		content: " ";
+		visibility: hidden;
+	}
 }
 
 @media screen and (min-width:1025px) {
@@ -630,5 +684,8 @@ input[type=submit], .btn-normal {
 	.post-section {
 		/*background-color: #D4E6F1;*/
 		padding: 1em;
+	}
+	.nav-menu {
+		width: 1025px;
 	}
 }

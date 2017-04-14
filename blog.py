@@ -196,7 +196,7 @@ class Handler(webapp2.RequestHandler):
             #self.response.delete_cookie('session', path='/')
             #self.response.set_cookie('session', path='/')
             jinja_env.globals['inkpenbam_session'] = self.session
-            return jinja_env.gloabls['inkpenbam_session']
+            return jinja_env.globals['inkpenbam_session']
         except:
             print "Error setting session in Handler()._set_session"
         finally:
@@ -515,8 +515,14 @@ class PostHandler(Handler):
                 # Delete our Post
                 self.delete_post(post_id)
             elif method == "EDIT":
-                # Edit out Post
-                self.edit_post(post_id)
+                # Edit our Post Request, Pass Subject/Content if exists
+                subject = self.request.get("subject")
+                content = self.request.get("content")
+                if subject == "":
+                    subject = None
+                if content == "":
+                    content = None
+                self.edit_post(post_id, subject, content)
 
     def delete_post(self, post_id):
         print "IN: PostHandler().delete_post()"
@@ -583,6 +589,9 @@ class PostHandler(Handler):
         if user_logged_in == True and user_valid == True:
             # Then we have a user valid user logged in and can proceed toward deleting post
 
+            # Used in Notice to User below on successful delete
+            post_subject = curr_post.subject[:20]
+            
             # Check that DELETE clicker is POST created_by OWNER
             if curr_post.created_by == user.username:
                 print "User is OWNER of Post. *CAN* Delete"
@@ -596,17 +605,41 @@ class PostHandler(Handler):
                 
                 # Redirect if Post instance deleted successfully
                 if post_check == None:
-                    self.redirect("/blog")
+                    # Display notice message saying that post was deleted
+                    self.clear_main_msg()
+                    self.clear_msg_type()
+                    self.set_main_msg('Success in deleting Post: "%s"' % post_subject)  
+                    self.set_msg_type("notice")
+                    
+                    # Update session variables
+                    self.session["messages_viewed"] = 0
+                    self._set_jinja_variable_session()
+                    self.redirect("/blog/welcome")
                 else:
                     print "DELETE of POST instance failed!"
+            # USER is NOT OWNER of POST. So Can't DELETE
             else:
                 print "*ERROR in DELETING post with logged in AND valid user*"
+                # Display error message saying that you need to be post Owner to DELETE
+                self.clear_main_msg()
+                self.clear_msg_type()
+                self.set_main_msg("You can ONLY delete your own posts...")
+                self.set_msg_type("error")
+                
+                # Update session variables
+                self.session["messages_viewed"] = 0
+                self._set_jinja_variable_session()
 
-    def edit_post(self, post_id):
+                self.redirect("/blog/welcome")
+
+    def edit_post(self, post_id, subject, content):
         print "IN: PostHandler().edit_post()"
         self.session["curr_handler"] = "PostHandler"
         
         curr_post = Post.get_by_id(long(post_id))
+        
+        # Used in Notice to User below on successful delete
+        post_subject = curr_post.subject[:20]
 
         post_form_error = ""
         try:
@@ -630,6 +663,7 @@ class PostHandler(Handler):
         user_logged_in = False
         user_valid = False
         user_info = UserHandler().user_logged_in(self)
+        user = None
 
         if user_info:
             user_logged_in = True
@@ -667,6 +701,93 @@ class PostHandler(Handler):
                 print "Cannot add session variable in Edit Post"
         
             print "USER Not Logged in....for EDIT" 
+        
+        if user_logged_in == True and user_valid == True:
+            # Then we have a user valid user logged in and can proceed toward EDITING post
+
+            # Check that EDIT clicker is POST created_by OWNER
+            if curr_post.created_by == user.username:
+                print "User is OWNER of Post. *CAN* Edit"
+                # Post Edit
+                if curr_post != None:
+                    #EDIT POST HERE
+                    if (subject == None and content == None):
+                        # Render our EditPost page for post editing
+                        subject = curr_post.subject
+                        content = curr_post.content
+                        
+                        subject_validation = ""
+                        content_validation = ""
+                        validation_error = False
+
+                        if subject == "":
+                            subject_validation = "Post must contain a SUBJECT before submit..."
+                            validation_error = True
+
+                        if content == "":
+                            content_validation = "Post must contain CONTENT before submit..."
+                            validation_error = True
+                        
+                        main_user_msgs = ""
+                        msg_type = None
+
+                        if validation_error == True:
+                            print "We have a validation error...Setting Main MSG for user..."
+                            self.clear_main_msg()
+                            self.clear_msg_type()
+                            self.set_main_msg("Edit values missing...")
+                            self.set_msg_type("error")
+                            main_user_msgs = self.get_main_msg()
+                            msg_type = self.get_msg_type()
+
+                            #Update session variables
+                            self.session["messages_viewed"] = 1
+                            self._set_jinja_variable_session()
+
+                        self.render("editpost.html", post=curr_post, subject=subject, content=content, 
+                        subject_validation=subject_validation, content_validation=content_validation,
+                        main_user_msgs=main_user_msgs, msg_type=msg_type)
+                    else: 
+                        # Use the values from the request
+                        print "Post subject and content received...Performing Update...."
+                        curr_post.subject=subject
+                        curr_post.content=content
+                        curr_post.put()
+            
+                        # Check to make sure post still exists
+                        post_check = Post.get_by_id(long(post_id))
+                        print "Post Check returned: %s" % post_check
+                
+                        # Notify if can't find Post instance for some reason
+                        if post_check == None:
+                            print "CANNOT find Post instance!"
+                        else:
+                            print "SUCCESS Editing Post instance!"
+                            # Display notice message saying that post was Edited
+                            self.clear_main_msg()
+                            self.clear_msg_type()
+                            self.set_main_msg('Success in editing Post: "%s"' % post_subject)  
+                            self.set_msg_type("notice")
+                            
+                            # Update session variables
+                            self.session["messages_viewed"] = 0
+                            self._set_jinja_variable_session()
+                            
+                        self.redirect("/blog/welcome") 
+            # USER is NOT OWNER of POST. So Can't EDIT
+            else:
+                print "*ERROR in EDITING post with logged in AND valid user*"
+                # Display error message saying that you need to be post Owner to EDIT
+                self.clear_main_msg()
+                self.clear_msg_type()
+                self.set_main_msg("You can ONLY edit your own posts...")
+                self.set_msg_type("error")
+                
+                # Update session variables
+                self.session["messages_viewed"] = 0
+                self._set_jinja_variable_session()
+
+                self.redirect("/blog/welcome")
 
     def clear_postform_errors(self, post_id):
         print "Clearing any PREVIOUSLY set post_form_error for Posts"

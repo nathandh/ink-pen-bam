@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}
+	EDITING Post: {{post.subject}}
+{% endblock %}
+
+{% block content %}
+	<div class="editpost-container">
+		{% include 'navmenu.html' %}
+		<hr>
+		<div class="editpost-content">	
+			<div class="editpost">
+			<h3>Edit: {{post.subject}}</h3>
+				<form method="post" id="editpost_form">
+					<label for="subject">Subject</label>
+					<input type="text" name="subject" value="{{subject}}">
+					<div class="error">
+						{{subject_validation}}
+					</div>
+					
+					<label for="content">Post</label>
+					<textarea name="content">{{content}}</textarea>
+					<div class="error">
+						{{content_validation}}
+					</div>
+					
+					<input type="hidden" name="_method" value="EDIT">
+					<input type="hidden" name="post_id" value="{{post.key().id()}}">
+					<button class="btn-normal" id="editpost-submit" type="submit" value="Edit">Submit Edit</button>
+				</form>
+			</div>
+		</div>
+	</div>
+{% endblock %}
