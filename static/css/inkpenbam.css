@@ -130,6 +130,10 @@ body {
 .logout-link {
 	color: ghostwhite;
 }
+/* Nav Menu Logout Link */
+.nav-logout-link {
+	display: none;
+}
 .post-subject {
 	font-size: 18px;
 	font-weight: bold;

@@ -41,6 +41,9 @@ function displayLoggedIn_User(){
 	var signup_login_div = document.getElementsByClassName("signup_login")[0];
 	console.log("Received" + signup_login_div);
 
+	// For displaying Logout Link as needed below
+	var navLogoutLink = document.getElementsByClassName("nav-logout-link")[0];
+	
 	if (document.cookie != ""){
 		console.log("We have a cookie set...");
 		console.log(document.cookie);
@@ -49,6 +52,10 @@ function displayLoggedIn_User(){
 		var cookie_val = getCookieData(document.cookie);
 		console.log("Got 'user_id' Cookie Values: " + cookie_val);
 		if (cookie_val == null){
+			// Assume no users are logged in then....
+			// Hide the logout link
+			navLogoutLink.style.display = "none";
+			
 			// Just exit and return null
 			return null;
 		}
@@ -92,6 +99,9 @@ function displayLoggedIn_User(){
 
 			console.log("Update page to display LOGGED IN user....");
 		}
+
+		// Display Logout Link in NavMenu if User Logged in
+		navLogoutLink.style.display = "block";
 	} else {
 		console.log("No User cookies found...");
 	}
