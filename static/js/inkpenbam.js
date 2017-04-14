@@ -200,8 +200,8 @@ function setPageCurrent(){
 			/* Hiding Signup and Login links
 			   since these pages are are not applicable to
 			   a logged in and valid user... */
-			   navMenuDivs[2].classList.add("nav-item-hidden");
-			   navMenuDivs[3].classList.add("nav-item-hidden");
+			navMenuDivs[2].classList.add("nav-item-hidden");
+			navMenuDivs[3].classList.add("nav-item-hidden");
 		} else if (resource[2].includes("signup")){
 			console.log("At Signup Page...Setting to Active...");
 			navMenuDivs[2].classList.add("nav-menu-item-active");
@@ -216,6 +216,19 @@ function setPageCurrent(){
 			   a logged in and valid user... */
 			   navMenuDivs[2].classList.add("nav-item-hidden");
 			   navMenuDivs[3].classList.add("nav-item-hidden");
+		} else if (resource.length >= 2 && resource[1].includes("blog")) {
+			console.log("We are likely on a Permalink page...");
+
+			/*Check cookie data, if we have a user_id cookie 
+			  then hide Signup and Login Nav menu items. */
+			// Get document.cookie values
+			var cookie_val = getCookieData(document.cookie);
+			console.log("Got 'user_id' Cookie Values: " + cookie_val);
+			if (cookie_val != null){
+				// hide Signup and Login
+				navMenuDivs[2].classList.add("nav-item-hidden");
+				navMenuDivs[3].classList.add("nav-item-hidden");
+			}
 		} else {
 			console.log("Couldn't parse resource: " + resource);
 		}

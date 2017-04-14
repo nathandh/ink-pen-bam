@@ -433,9 +433,26 @@ class UserSignup(Handler):
                 mail_validation="That's not a valid email."
                 validation_error = True
 
+        main_user_msgs = None
+        msg_type = None
+        #Check if we have a validation error. If so, set msg to client
+        if validation_error == True:
+            print "We have a validation error....setting Main Msg for user..."
+            self.clear_main_msg()
+            self.clear_msg_type()
+            self.set_main_msg("Signup Error(s) exist. Please check...")
+            self.set_msg_type("error")
+            main_user_msgs = self.get_main_msg()
+            msg_type = self.get_msg_type()
+
+            #Update session variables
+            self.session["messages_viewed"] = 1
+            self._set_jinja_variable_session()
+
         self.render("user-signup.html", username=username, email=email, 
                     username_validation=user_validation, password_validation=pass_validation, 
-                    verify_validation=pass2_validation, email_validation=mail_validation)
+                    verify_validation=pass2_validation, email_validation=mail_validation,
+                    main_user_msgs=main_user_msgs, msg_type=msg_type)
 
         if validation_error == False:
             user = UserHandler().create_user(username, password, email)
@@ -554,11 +571,11 @@ class PostHandler(Handler):
             # Then we have a user valid user logged in and can proceed toward deleting post
 
             # Check that DELETE clicker is POST created_by OWNER
-            if post.created_by == user.username:
+            if curr_post.created_by == user.username:
                 print "User is OWNER of Post. *CAN* Delete"
                 # Post Deletion
-                if post != None:
-                    post.delete()
+                if curr_post != None:
+                    curr_post.delete()
             
                 # Check to make sure post is deleted
                 post_check = Post.get_by_id(long(post_id))
@@ -757,6 +774,22 @@ class NewPost(Handler):
         if content == "":
             content_validation = "You must enter CONTENT text before submitting..."
             validation_error = True
+        
+        main_user_msgs = None
+        msg_type = None
+        #Check if we have a validation error. If so, set msg to client
+        if validation_error == True:
+            print "We have a validation error....setting Main Msg for user..."
+            self.clear_main_msg()
+            self.clear_msg_type()
+            self.set_main_msg("Post values missing...")
+            self.set_msg_type("error")
+            main_user_msgs = self.get_main_msg()
+            msg_type = self.get_msg_type()
+
+            #Update session variables
+            self.session["messages_viewed"] = 1
+            self._set_jinja_variable_session()
 
         """
         If all is well, add the post...Otherwise render the page with errors
@@ -765,7 +798,8 @@ class NewPost(Handler):
             self.add_new_post(subject, content, created_by)
         else:
             self.render("newpost.html", subject=subject, content=content, 
-                    subject_validation=subject_validation, content_validation=content_validation)
+                        subject_validation=subject_validation, content_validation=content_validation,
+                        main_user_msgs=main_user_msgs, msg_type=msg_type)
 
 """ 
 Main BLOG Front Page Handler
@@ -926,7 +960,6 @@ class Welcome(Handler):
 
                 if user_logged_posts.get() == None:
                     print "No User POSTS exist...."
-                    #TODO: add link to new post and display a messsage
                     self.set_main_msg("Hmm...you have 0 posts. Please <a href='/blog/newpost'>add some</a>. :)")
                     main_user_msgs = self.get_main_msg()
                     msg_type = self.set_msg_type("notice")
@@ -1040,8 +1073,24 @@ class Login(Handler):
                 validation_error = True
         else:
             validation_error = True
+        
+        main_user_msgs = None
+        msg_type = None
+        #Check if we have a validation error. If so, set msg to client
+        if validation_error == True:
+            print "We have a validation error....setting Main Msg for user..."
+            self.clear_main_msg()
+            self.clear_msg_type()
+            self.set_main_msg("Login Error. Please check credentials...")
+            self.set_msg_type("error")
+            main_user_msgs = self.get_main_msg()
+            msg_type = self.get_msg_type()
 
-        self.render("login.html", login_error=login_error)
+            #Update session variables
+            self.session["messages_viewed"] = 1
+            self._set_jinja_variable_session()
+
+        self.render("login.html", login_error=login_error, main_user_msgs=main_user_msgs, msg_type=msg_type)
 
 class Logout(Handler):
     def get(self):
