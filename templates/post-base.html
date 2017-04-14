@@ -1,0 +1,39 @@
+<div class="post-section">
+	<hr>
+	<div class="post">
+		<div class="post-subject">
+			{{post.subject}}
+		</div>
+
+		<div class="post-createdby">
+			Posted by:&nbsp;<div class="post-createdby-name">{{post.created_by}}</div>
+		</div>
+
+		<div class="post-date-time">
+			{{post.created.strftime("%b %d, %Y | %-I:%M %p")}}
+		</div>
+		
+		<div class="post-content">
+			{% block post_render_type %}
+			{% endblock %}
+		</div>
+	</div>
+	{% set edit_form_id = "edit_%s_form" % post.key().id() %}
+	{% set delete_form_id = "delete_%s_form" % post.key().id() %}
+	<div class="permalink"><a href="/blog/{{post.key().id()}}">Permalink: {{post.key().id()}}</a></div>
+	<form action="/blog/{{post.key().id()}}" method="POST" id="{{edit_form_id}}" class="post-edit-form">
+		<input type="hidden" name="_method" value="EDIT">
+		<input type="hidden" name="post_id" value="{{post.key().id()}}">
+		<button class="btn-text" type="submit" value="Edit">Edit</button>
+	</form>
+	<form action="/blog/{{post.key().id()}}" method="POST" id="{{delete_form_id}}" class="post-delete-form">
+		<input type="hidden" name="_method" value="DELETE">
+		<input type="hidden" name="post_id" value="{{post.key().id()}}">
+		<button class="btn-text" type="submit" value="Delete">Delete</button>
+	</form>
+	<div class="post-forms-error">
+		{% set post_form_id = "post_%s_form_error" % post.key().id() %}
+		{{ inkpenbam_session[post_form_id] }}
+		<!-- inkpenbam_session is a Jinja global session variable set in Handler() class -->
+	</div>
+</div> <!-- End Post Section -->
