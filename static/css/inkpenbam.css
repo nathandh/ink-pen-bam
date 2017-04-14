@@ -190,13 +190,6 @@ body {
 	padding: 8px;
 }
 
-/* For Buttons */
-.btn-text {
-	width: 55px;
-	height: 20px;
-	color: black;
-}
-
 /* User SignUp Form Specific */
 #signupform {
 	float: left;
@@ -522,6 +515,17 @@ body {
 }
 .permalink-title {
 	font-size: 2em;
+}
+
+/* Form buttons */
+input[type=submit], .btn-normal {
+	padding: 6px 10px;
+	background: #34495E;
+	color: #D4E6F1;
+	border: 0 none;
+	cursor: pointer;
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
 }
 
 /* Media Queries */
