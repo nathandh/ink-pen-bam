@@ -20,6 +20,7 @@
 	</div>
 	{% set edit_form_id = "edit_%s_form" % post.key().id() %}
 	{% set delete_form_id = "delete_%s_form" % post.key().id() %}
+	{% set like_form_id = "like_%s_form" % post.key().id() %}
 	<div class="permalink"><a href="/blog/{{post.key().id()}}">Permalink: {{post.key().id()}}</a></div>
 	<form action="/blog/{{post.key().id()}}" method="POST" id="{{edit_form_id}}" class="post-edit-form">
 		<input type="hidden" name="_method" value="EDIT">
@@ -30,6 +31,24 @@
 		<input type="hidden" name="_method" value="DELETE">
 		<input type="hidden" name="post_id" value="{{post.key().id()}}">
 		<button class="btn-normal" type="submit" value="Delete">Delete</button>
+	</form>
+	<form action="/blog/{{post.key().id()}}" method="POST" id="{{like_form_id}}" class="post-like-form">
+		<input type="hidden" name="_method" value="LIKE">
+		<input type="hidden" name="post_id" value="{{post.key().id()}}">
+		{% set like_status = "like_%s_status" % post.key().id() %}
+		{% if inkpenbam_session[like_status] == "true" %}
+			<button class="btn-post-liked" type="submit">
+				<i class="fa fa-thumbs-down" aria-hidden="true"></i> Unlike
+			</button>
+		{% elif inkpenbam_session[like_status] == "false" %}
+			<button class="btn-post-unliked" type="submit">	
+				<i class="fa fa-thumbs-up" aria-hidden="true"></i> Like
+			</button>
+		{% else %}
+			<button class="btn-post-unliked" type="submit">
+				<i class="fa fa-thumbs-up" aria-hidden="true"></i> Like
+			</button>
+		{% endif %}
 	</form>
 	<div class="post-forms-error">
 		{% set post_form_id = "post_%s_form_error" % post.key().id() %}

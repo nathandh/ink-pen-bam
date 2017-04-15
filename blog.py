@@ -523,6 +523,9 @@ class PostHandler(Handler):
                 if content == "":
                     content = None
                 self.edit_post(post_id, subject, content)
+            elif method == "LIKE":
+                # Like a Post Request
+                self.like_post(post_id)
 
     def delete_post(self, post_id):
         print "IN: PostHandler().delete_post()"
@@ -789,6 +792,179 @@ class PostHandler(Handler):
 
                 self.redirect("/blog/welcome")
 
+    def like_post(self, post_id):
+        print "IN: PostHandler().like_post()"
+        self.session["curr_handler"] = "PostHandler"
+        
+        curr_post = Post.get_by_id(long(post_id))
+
+        post_form_error = ""
+        try:
+            if self.session != None:
+                if self.session['post_%s_form_error' % post_id] != None:
+                    # Clear our Post Form Errors
+                    self.clear_postform_errors(post_id)
+            # Clear our Main MSG area
+            self.clear_main_msg()
+        except:
+            print "Nothing exists in POST_FORM_ERROR value in session."
+
+        print ("LIKE Post received")
+        
+        # Check for logged in/ valid user
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+        user = None
+
+        if user_info:
+            user_logged_in = True
+            user = UserHandler().user_loggedin_valid(self, user_info)
+            if user:
+                user_valid = True
+            else:
+                print "Cookie invalid @ PostHandler!"
+
+        if user_logged_in == False or user_valid == False:
+            print "Either NOT Logged In, or Not VALID..."
+            # Clear existing session data (as not logged in)
+            try:
+                # Reset message for Clicked Post
+                self.session['post_%s_form_error' % post_id] = "LIKE requires Login!"
+
+                # Set MAIN User MSG Text
+                print "post subject is: %s" % curr_post.subject
+                post_short_tag = "'%s...'" % curr_post.subject[0:20]
+                self.set_main_msg("Please <a href='/blog/login'>Login</a> to LIKE post: %s" % post_short_tag)
+                self.set_msg_type("error")
+
+                print "After LIKE click, session data is: %s" % self.session
+
+                # Set error message to NOT viewed
+                self.session["messages_viewed"] = 0 
+                
+                # Update STORED Jinja global session variable (for potential use in templates)
+                self._set_jinja_variable_session()
+
+                #self.redirect("/blog") Redirecting to Login instead
+                self.redirect("/blog/login")
+            except:
+                print "Cannot add session variable in LIKE Post"
+        
+            print "USER Not Logged in....for LIKE" 
+        
+        if user_logged_in == True and user_valid == True:
+            # Then we have a user valid user logged in and can proceed toward liking post
+
+            # Used in Notice to User below on successful delete
+            post_subject = curr_post.subject[:20]
+            
+            # Check that LIKE clicker is NOT the POST created_by OWNER
+            if curr_post.created_by != user.username:
+                print "User is NOT OWNER of Post so *CAN* Like"
+                # Post Like Allowed
+                if curr_post != None:
+                    print "Checking to see if 'user' has liked this post before"
+                    
+                    my_post_likes = curr_post.post_likes.filter('user =', user)
+                    if my_post_likes.get() == None:
+                        print "No LIKE exists for this USER on this post...."
+                        print "*****Marking Post as LIKED by USER 1st time*****"
+                        like = Like(post=curr_post, user=user, liked="true")
+                        like.put()
+                        
+                        # Set Messages and Redirect back to Welcome Home Page
+                        # Display notice message saying that post was liked
+                        self.clear_main_msg()
+                        self.clear_msg_type()
+                        self.set_main_msg('LIKED Post: "%s"' % post_subject)  
+                        self.set_msg_type("notice")
+                        
+                        # Update session variables
+                        self.session["messages_viewed"] = 0
+
+                        self.session["like_%s_status" % curr_post.get().id()] = "true"
+
+                        self._set_jinja_variable_session()
+                        self.redirect("/blog/welcome")
+                    else:
+                        print "USER has liked this post before..."
+
+                        """
+                        The following should never occur under normal operation.
+                        i.e. there should never be more than 1 Like per User for a Post
+                        This exists purely as a failsafe cleanup..., and for convenience
+                        while testing out Liking Posts during development
+                        """
+                        if my_post_likes.count() > 1:
+                            print "Cleaning House. Should only be 1 Post Like Per User"
+                            count = 0
+                            for my_like in my_post_likes:
+                                if count == 0:
+                                    print "Keeping 1 Like: %s" % my_like
+                                else:
+                                    print "Deleting extra like"
+                                    my_like.delete()
+
+                                count += 1
+                        
+                        # This output should always be 1 only per user
+                        print "# of Times User has Liked this post: %s" % my_post_likes.count()
+
+                        # Set our like to true/false, rather than delete completely to indicate user 
+                        # has previously liked an item before
+                        # We toggle opposite based on what was previously stored
+
+                        liked_obj = my_post_likes.get()
+                        current_liked_val = liked_obj.liked
+                        new_liked_val = None
+                        liked_user_msg = None
+                        if current_liked_val == "true":
+                            new_liked_val = "false"
+                            self.session["like_%s_status" % curr_post.key().id()] = "false"
+                            liked_user_msg = "You just UN-LIKED Post: %s" % post_subject
+                        else:
+                            new_liked_val = "true"
+                            self.session["like_%s_status" % curr_post.key().id()] = "true"
+                            liked_user_msg = "LIKED Post: %s" % post_subject
+
+                        liked_obj.liked = new_liked_val
+                        liked_obj.put()
+
+                        # Validate like for user still exists
+                        post_check = Post.get_by_id(long(post_id))
+                        d_result = post_check.post_likes.filter('user =', user).get()
+                        if d_result != None:
+                            #print "Post Check for Like returned: %s" % d_result.liked
+                            
+                            # Set Messages and Redirect back to Welcome Home Page
+                            # Display notice message saying Previously Liked Post already
+                            self.clear_main_msg()
+                            self.clear_msg_type()
+                            self.set_main_msg(liked_user_msg)  
+                            self.set_msg_type("notice")
+                            
+                            # Update session variables
+                            self.session["messages_viewed"] = 0
+                            self._set_jinja_variable_session()
+                            self.redirect("/blog/welcome")
+                else:
+                    print "LIKING of POST instance failed!"
+            # USER IS the OWNER of POST. So Can't LIKE
+            else:
+                print "*ERROR in LIKING post with logged in AND valid user*"
+                # Display error message saying that you *must not be* the post Owner to LIKE
+                self.clear_main_msg()
+                self.clear_msg_type()
+                self.set_main_msg("You can ONLY like other people's posts...")
+                self.set_msg_type("error")
+                
+                # Update session variables
+                self.session["messages_viewed"] = 0
+                self._set_jinja_variable_session()
+
+                self.redirect("/blog/welcome")
+
     def clear_postform_errors(self, post_id):
         print "Clearing any PREVIOUSLY set post_form_error for Posts"
 
@@ -806,6 +982,29 @@ class PostHandler(Handler):
                 self._set_jinja_variable_session()
 
         print "Exiting clear_postform_errors()"
+
+    def set_post_likes(self, web_obj, posts, user):
+        print "Setting any PREVIOUS Likes for Current User"
+
+        for p in posts:
+            try:
+                post_like = user.user_likes.filter('post =', p).get()
+                if post_like != None:
+                    print ("Found a post liked on post")
+                    if post_like.liked == "true":
+                        print "post...liked is true"
+                        web_obj.session["like_%s_status" % p.key().id()] = "true"
+                    else:
+                        print "post...liked is false"
+                        web_obj.session["like_%s_status" % p.key().id()] = "false"
+                else:
+                    print post_like
+            except:
+                print "Error setting Post Likes for Current User..."
+            finally:
+                web_obj._set_jinja_variable_session()
+
+        print "Finished setting LIKES on Posts for Current User."
         
 """
 NEW Post URL Handler, for our blog post additions
@@ -959,17 +1158,6 @@ class Blog(Handler):
 
         # Check Referrer to display appropriate Errors and Messages
         source = self.get_ref_source()
-        """ # DELETE IF WORKS
-        source = None
-        try:
-            ref = self.request.referrer.split('http://')[1]
-            first_slash = ref.find('/')
-            source = ref[first_slash: ]
-        except: 
-            print "Can't parse HTTP Referrer."
-        finally:
-            print source
-        """
 
         if source != None:
             if messages_viewed == 1:
@@ -1003,7 +1191,7 @@ class Blog(Handler):
                         try:
                             self.session['post_%s_form_error' % p.key().id()] = ""
                         except:
-                            "Cannot blank individual post session error..."
+                            print "Cannot blank individual post session error..."
                         finally:
                             self._set_jinja_variable_session()
 
@@ -1107,6 +1295,9 @@ class Welcome(Handler):
 
                 # Get ALL the POSTS
                 all_posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
+                if all_posts.get() != None:
+                    # Set any Post LIKEs for Current Logged in and Valid User
+                    PostHandler().set_post_likes(self, all_posts, user)
 
                 #print "BEFORE render, main_user_msgs is: %s" % main_user_msgs 
                 # Get Current Date Time
@@ -1191,6 +1382,20 @@ class Login(Handler):
         # Becomes True if error is found
         validation_error = False
 
+        last_handler = None
+        messages_viewed = 0
+        try:
+            last_handler = self.session["curr_handler"]
+            messages_viewed = self.session["messages_viewed"]
+        except:
+            print "No Last Handler or Errors Viewed values exist"
+        finally:
+            self.session["curr_handler"] = "Login"
+        
+        # Refresh our stored Jinja inkpenbam_session variable
+        stored_jinja_session = self._get_jinja_variable_session()
+        if stored_jinja_session == None:
+            self._set_jinja_variable_session()
         # 1st Check if User entered exists 
         user = UserHandler().user_exists(username)
         if user != None:
@@ -1200,6 +1405,24 @@ class Login(Handler):
             if UserHandler().user_verify_pass(user, password):
                 print "Password matches our DataStore...."
                 if UserHandler().set_cookie(self, user):
+                    # Let's cleanup all error messages before directing to Welcome Page
+                    posts_exist = False
+                    posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
+                    if posts.get() != None:
+                        posts_exist = True
+                        source = self.get_ref_source()
+                        if source!= None:
+                            if messages_viewed == 1:
+                                print "Cleaning...house...."
+                                for p in posts:
+                                    try:
+                                        self.session['post_%s_form_error' % p.key().id()] = ""
+                                    except:
+                                        print "Cannot blank individual post error msg..."
+                                    finally:
+                                        self._set_jinja_variable_session()
+
+                    # SEND OFF to Our LOGGED in Welcome Page
                     self.redirect("/blog/welcome")
                 else:
                     print "Problem setting cookie..."
@@ -1242,6 +1465,22 @@ class Logout(Handler):
         
         # Redirect to Signup page
         self.redirect("/blog/signup")
+
+"""
+LIKE GAE Entity (Model) for persistance
+"""
+class Like(db.Model):
+    # 'likes' Collection, as we can have MANY likes for 1 post
+    post = db.ReferenceProperty(Post, 
+                                collection_name='post_likes')
+
+    # likewise, we can have MANY likes for 1 user
+    user = db.ReferenceProperty(User,
+                                collection_name='user_likes')
+
+    liked = db.StringProperty(choices=('true', 'false'), required = True) 
+    created = db.DateTimeProperty(auto_now_add = True)
+    last_modified = db.DateTimeProperty(auto_now = True)
 
 """
 Catch-All Blog Router
