@@ -37,18 +37,23 @@
 		<input type="hidden" name="post_id" value="{{post.key().id()}}">
 		{% set like_status = "like_%s_status" % post.key().id() %}
 		{% if inkpenbam_session[like_status] == "true" %}
-			<button class="btn-post-liked" type="submit">
+			<button class="btn-normal btn-post-liked" type="submit">
 				<i class="fa fa-thumbs-down" aria-hidden="true"></i> Unlike
 			</button>
 		{% elif inkpenbam_session[like_status] == "false" %}
-			<button class="btn-post-unliked" type="submit">	
+			<button class="btn-normal btn-post-unliked" type="submit">	
 				<i class="fa fa-thumbs-up" aria-hidden="true"></i> Like
 			</button>
 		{% else %}
-			<button class="btn-post-unliked" type="submit">
+			<button class="btn-normal btn-post-unliked" type="submit">
 				<i class="fa fa-thumbs-up" aria-hidden="true"></i> Like
 			</button>
 		{% endif %}
+	</form>
+	<form action="/blog/{{post.key().id()}}" method="POST" id="{{commend_form_id}}" class="post-comment-form">
+		<input type="hidden" name="_method" value="COMMENT">
+		<input type="hidden" name="post_id" value="{{post.key().id()}}">
+		<button class="btn-normal btn-post-comment" type="submit" value="Comment">Comment</button>
 	</form>
 	<div class="post-forms-error">
 		{% set post_form_id = "post_%s_form_error" % post.key().id() %}

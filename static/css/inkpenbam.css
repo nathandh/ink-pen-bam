@@ -355,7 +355,7 @@ body {
 }
 
 /* Post EDIT and DELETE Forms */
-.post-edit-form, .post-delete-form, .post-like-form {
+.post-edit-form, .post-delete-form, .post-like-form, .post-comment-form {
 	display: inline;
 }
 
@@ -581,30 +581,15 @@ input[type=submit], .btn-normal {
 	font-size: 1em;
 }
 .btn-post-unliked {
-	padding: 6px 10px;
-	background: #34495E;
-	opacity: 0.6;
-	color: #D4E6F1;
-	border: 0 none;
-	cursor: pointer;
-	-webkit-border-radius: 6px;
-	border-radius: 6px;
-	text-decoration: none;
-	font-size: 1em;
+	opacity: 0.8;
 }
 .btn-post-liked {
-	padding: 6px 10px;
-	background: #34495E;
 	opacity: 1;
-	color: #D4E6F1;
-	border: 0 none;
-	cursor: pointer;
-	-webkit-border-radius: 6px;
-	border-radius: 6px;
-	text-decoration: none;
-	font-size: 1em;
 }
 .btn-post-unliked:hover {
+	opacity: 1;
+}
+.btn-post-comment {
 	opacity: 1;
 }
 .btn-muted {

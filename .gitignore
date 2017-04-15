@@ -3,3 +3,4 @@ inkpenbam.key
 
 # Ignore any temporary swap files from VIM
 *.swp
+*.swo

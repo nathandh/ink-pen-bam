@@ -526,6 +526,9 @@ class PostHandler(Handler):
             elif method == "LIKE":
                 # Like a Post Request
                 self.like_post(post_id)
+            elif method == "COMMENT":
+                # Comment on a Post Request
+                self.comment_post(post_id)
 
     def delete_post(self, post_id):
         print "IN: PostHandler().delete_post()"
@@ -883,7 +886,7 @@ class PostHandler(Handler):
                         # Update session variables
                         self.session["messages_viewed"] = 0
 
-                        self.session["like_%s_status" % curr_post.get().id()] = "true"
+                        self.session["like_%s_status" % curr_post.key().id()] = "true"
 
                         self._set_jinja_variable_session()
                         self.redirect("/blog/welcome")
@@ -964,6 +967,81 @@ class PostHandler(Handler):
                 self._set_jinja_variable_session()
 
                 self.redirect("/blog/welcome")
+
+    def comment_post(self, post_id):
+        print "IN: PostHandler().comment_post()"
+        self.session["curr_handler"] = "PostHandler"
+
+        curr_post = Post.get_by_id(long(post_id))
+
+        post_form_error = ""
+        try:
+            if self.session != None:
+                if self.session['post_%s_form_error' % post_id] != None:
+                    # Clear out Post Form Erorrs
+                    self.clear_postform_errors(post_id)
+            # Clear our Main MSG area
+            self.clear_main_msg()
+        except:
+            print "Nothing exists in POST_FORM_ERROR value in session."
+
+        print ("COMMENT Post received")
+
+        # Check for logged in/valid user
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+        user = None
+
+        if user_info:
+            user_logged_in = True
+            user = UserHandler().user_loggedin_valid(self, user_info)
+            if user:
+                user_valid = True
+            else:
+                print "Cookie invalid @ PostHandler!"
+
+        if user_logged_in == False or user_valid == False:
+            print "Either NOT Logged In, or Not VALID..."
+            # Clear existing session data (as not logged in)
+            try:
+                # Reset message for Clicked Post
+                self.session["post_%s_form_error" % post_id] = "COMMENT requires Login!"
+
+                # Set MAIN User MSG Text
+                print "post subject is: %s" % curr_post.subject
+                post_short_tag = "'%s...'" % curr_post.subject[0:20]
+                self.set_main_msg("Please <a href='/blog/login'>Login</a> to COMMENT on post: %s" % post_short_tag)
+                print "After COMMENT click, session data is: %s" % self.session
+
+                # Set error message to NOT viewed
+                self.session["messages_viewed"] = 0
+
+                #Update STORED Jinja global session variable (for use in templates)
+                self._set_jinja_variable_session()
+
+                # Redirect to LOGIN page
+                self.redirect("/blog/login")
+            except:
+                print "Cannot add session variable in COMMENT Post"
+        
+        print "USER Not Logged in...for COMMENT"
+
+        """
+        COMMENT POST control for VALID and LOGGED IN User
+        """
+        if user_logged_in == True and user_valid == True:
+            # Then we can proceed to COMMENT on post
+
+            # Used in Notice to User below on successful comment
+            post_subject = curr_post.subject[:20]
+
+            if curr_post != None:
+                print "We are about to add a comment...."
+                self.redirect("/blog/welcome")
+
+
+
 
     def clear_postform_errors(self, post_id):
         print "Clearing any PREVIOUSLY set post_form_error for Posts"
@@ -1232,9 +1310,11 @@ class Welcome(Handler):
 
         last_handler = None
         messages_viewed = 0
+        login_msg_displayed_once = 0
         try:
             last_handler = self.session["curr_handler"]
             messages_viewed = self.session["messages_viewed"]
+            login_msg_displayed_once = self.session["login_msg_displayed_once"]
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
@@ -1280,12 +1360,13 @@ class Welcome(Handler):
                 # Get All Posts BY USER
                 user_logged_posts = db.GqlQuery("SELECT * FROM Post WHERE created_by = :created_by ORDER BY created DESC", created_by=username)
 
-                if user_logged_posts.get() == None:
+                if user_logged_posts.get() == None and login_msg_displayed_once == 0:
                     print "No User POSTS exist...."
                     self.set_main_msg("Hmm...you have 0 posts. Please <a href='/blog/newpost'>add some</a>. :)")
                     main_user_msgs = self.get_main_msg()
                     msg_type = self.set_msg_type("notice")
                     self.session["messages_viewed"] = 0
+                    self.session["login_msg_displayed_once"] = 1
                 else:
                     self.clear_main_msg()
                     self.clear_msg_type()
