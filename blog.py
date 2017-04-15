@@ -876,6 +876,12 @@ class PostHandler(Handler):
                         like = Like(post=curr_post, user=user, liked="true")
                         like.put()
                         
+                        # Validate like for user still exists
+                        post_check = Post.get_by_id(long(post_id))
+                        d_result = post_check.post_likes.filter('user =', user).get()
+                        if d_result != None:
+                            print "Post Check for Like returned: %s" % d_result.liked
+                        
                         # Set Messages and Redirect back to Welcome Home Page
                         # Display notice message saying that post was liked
                         self.clear_main_msg()
@@ -1039,9 +1045,6 @@ class PostHandler(Handler):
             if curr_post != None:
                 print "We are about to add a comment...."
                 self.redirect("/blog/welcome")
-
-
-
 
     def clear_postform_errors(self, post_id):
         print "Clearing any PREVIOUSLY set post_form_error for Posts"
@@ -1310,7 +1313,7 @@ class Welcome(Handler):
 
         last_handler = None
         messages_viewed = 0
-        login_msg_displayed_once = 0
+        login_msg_displayed_once = 0    # So first time welcome loaded this session
         try:
             last_handler = self.session["curr_handler"]
             messages_viewed = self.session["messages_viewed"]
@@ -1374,11 +1377,13 @@ class Welcome(Handler):
                 # Ensure jinja session variables are in-sync
                 self._set_jinja_variable_session()
 
-                # Get ALL the POSTS
                 all_posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
                 if all_posts.get() != None:
-                    # Set any Post LIKEs for Current Logged in and Valid User
-                    PostHandler().set_post_likes(self, all_posts, user)
+                    # Get ALL the POSTS and set All Post *initial like* values if
+                    # this is the first time viewing welcome page after login
+                    if login_msg_displayed_once == 0:
+                        # Set any Post LIKEs for Current Logged in and Valid User
+                        PostHandler().set_post_likes(self, all_posts, user)
 
                 #print "BEFORE render, main_user_msgs is: %s" % main_user_msgs 
                 # Get Current Date Time

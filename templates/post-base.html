@@ -37,15 +37,15 @@
 		<input type="hidden" name="post_id" value="{{post.key().id()}}">
 		{% set like_status = "like_%s_status" % post.key().id() %}
 		{% if inkpenbam_session[like_status] == "true" %}
-			<button class="btn-normal btn-post-liked" type="submit">
+			<button class="btn-normal btn-post-unlike" type="submit">
 				<i class="fa fa-thumbs-down" aria-hidden="true"></i> Unlike
 			</button>
 		{% elif inkpenbam_session[like_status] == "false" %}
-			<button class="btn-normal btn-post-unliked" type="submit">	
+			<button class="btn-normal btn-post-like" type="submit">	
 				<i class="fa fa-thumbs-up" aria-hidden="true"></i> Like
 			</button>
 		{% else %}
-			<button class="btn-normal btn-post-unliked" type="submit">
+			<button class="btn-normal btn-post-like" type="submit">
 				<i class="fa fa-thumbs-up" aria-hidden="true"></i> Like
 			</button>
 		{% endif %}
