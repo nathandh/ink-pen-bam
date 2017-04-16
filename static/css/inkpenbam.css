@@ -62,7 +62,10 @@ body {
 	color: ghostwhite;
 }
 .permalink {
-	margin-top: 10px;
+	margin-top: 8px;
+	padding-top: 6px;
+	padding-left: 8px;
+	padding-bottom: 20px;
 	font-size: 10px;
 	text-align: right;
 	clear: both;
@@ -138,6 +141,9 @@ body {
 .post-subject {
 	font-size: 18px;
 	font-weight: bold;
+}
+.post-content {
+	padding-right: 12em;
 }
 .post-createdby {
 	display: inline-flex;
@@ -640,12 +646,27 @@ input[type=submit], .btn-normal {
 	}
 
 	/* Posts Formatting */
+	.post-content {
+		padding-right: 0em;
+		padding-top: 0.5em;
+		padding-bottom: 0em;
+	}
+	.post-createdby, .post-date-time {
+		float: none;
+	}
+	.post-createdby {
+		padding-top: 0.5em;
+	}
+	.permalink {
+		padding-top: 0em;
+		padding-bottom: 1em;
+	}
 	.post-section {
 		margin-left: 0px;
 		margin-right: 0px;
 	}
 	.post {
-		margin-bottom: 45px;
+		margin-bottom: 1em;
 	}
 	.post-edit-form {
 		position: relative;
