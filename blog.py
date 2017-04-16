@@ -1293,6 +1293,8 @@ class Blog(Handler):
                     for p in posts:
                         try:
                             self.session['post_%s_form_error' % p.key().id()] = ""
+                            # Update session to reflect logged out, and therefore not post owner
+                            self.session["post_%s_owner" % p.key().id()] = ""
                         except:
                             print "Cannot blank individual post session error..."
                         finally:
