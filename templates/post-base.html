@@ -21,16 +21,22 @@
 	{% set edit_form_id = "edit_%s_form" % post.key().id() %}
 	{% set delete_form_id = "delete_%s_form" % post.key().id() %}
 	{% set like_form_id = "like_%s_form" % post.key().id() %}
+	{% set is_post_owner = "post_%s_owner" % post.key().id() %}
+	{% if inkpenbam_session[is_post_owner] == "true" %}
+		{% set user_btn_style = "btn-post-owner" %}
+	{% else %}
+		{% set user_btn_style = "btn-post-viewer" %}
+	{% endif %}
 	<div class="permalink"><a href="/blog/{{post.key().id()}}">Permalink: {{post.key().id()}}</a></div>
 	<form action="/blog/{{post.key().id()}}" method="POST" id="{{edit_form_id}}" class="post-edit-form">
 		<input type="hidden" name="_method" value="EDIT">
 		<input type="hidden" name="post_id" value="{{post.key().id()}}">
-		<button class="btn-normal" type="submit" value="Edit">Edit</button>
+		<button class="btn-normal {{user_btn_style}}" type="submit" value="Edit">Edit</button>
 	</form>
 	<form action="/blog/{{post.key().id()}}" method="POST" id="{{delete_form_id}}" class="post-delete-form">
 		<input type="hidden" name="_method" value="DELETE">
 		<input type="hidden" name="post_id" value="{{post.key().id()}}">
-		<button class="btn-normal" type="submit" value="Delete">Delete</button>
+		<button class="btn-normal {{user_btn_style}}" type="submit" value="Delete">Delete</button>
 	</form>
 	<form action="/blog/{{post.key().id()}}" method="POST" id="{{like_form_id}}" class="post-like-form">
 		<input type="hidden" name="_method" value="LIKE">

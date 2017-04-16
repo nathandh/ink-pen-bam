@@ -589,15 +589,26 @@ input[type=submit], .btn-normal {
 .btn-post-comment {
 	opacity: 1;
 }
-.btn-muted {
-	/* Unused for now....
-	   Keeping to potentially use
-	   for "muting" buttons that 
-	   a USER doesn't have ability
-	   to use. e.g. (trying to like
-	   their own POST, deleting
-	   someone else's post, etc.)
-	*/
+/* Unused for switching styles
+   based on whether a user is
+   the post "owner" or just a
+   "viewer". For instance in 
+   the case a USER doesn't 
+   have ability to use a 
+   specific function: e.g. 
+   (trying to like
+   their own POST, deleting
+   someone else's post, etc.)
+*/
+.btn-post-owner {
+	/* Default .btn-normal above used for now
+	   Keeping to eventually use custome style
+	   here later */
+}
+.btn-post-viewer {
+	/* Mute our buttons to indicate that their
+	   functions can't be used by current user */
+	background: #787F9C;
 }
 
 /* Media Queries */

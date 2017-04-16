@@ -618,6 +618,8 @@ class PostHandler(Handler):
                     self.set_msg_type("notice")
                     
                     # Update session variables
+                    # Update session to reflect this user as post owner
+                    del self.session["post_%s_owner" % post_id]
                     self.session["messages_viewed"] = 0
                     self._set_jinja_variable_session()
                     self.redirect("/blog/welcome")
@@ -1086,7 +1088,23 @@ class PostHandler(Handler):
                 web_obj._set_jinja_variable_session()
 
         print "Finished setting LIKES on Posts for Current User."
-        
+
+    def style_postform_buttons(self, web_obj, posts, user):
+        print "Styling post for buttons for the Current User"
+
+        for p in posts:
+            try:
+                if p.created_by == user.username:
+                    print "User is owner of Post...so updating session variables"
+                    web_obj.session["post_%s_owner" % p.key().id()] = "true"
+                else:
+                    print "...this is someone else's post...."
+                    web_obj.session["post_%s_owner" % p.key().id()] = "false"
+            except: 
+                print "Eror styling post form buttons by OWNER"
+            finally:
+                web_obj._set_jinja_variable_session()
+                    
 """
 NEW Post URL Handler, for our blog post additions
 """
@@ -1094,6 +1112,10 @@ class NewPost(Handler):
     def add_new_post(self, subject, content, created_by):
         p = Post(subject=subject, content=content, created_by=created_by)
         p.put() 
+
+        # Update session to reflect this user as post owner
+        self.session["post_%s_owner" % p.key().id()] = "true"
+        self._set_jinja_variable_session()
 
         #print p
         self.redirect("/blog/%s" % p.key().id())
@@ -1384,6 +1406,8 @@ class Welcome(Handler):
                     if login_msg_displayed_once == 0:
                         # Set any Post LIKEs for Current Logged in and Valid User
                         PostHandler().set_post_likes(self, all_posts, user)
+                        # Style Post Form buttons for current user
+                        PostHandler().style_postform_buttons(self, all_posts, user)
 
                 #print "BEFORE render, main_user_msgs is: %s" % main_user_msgs 
                 # Get Current Date Time
