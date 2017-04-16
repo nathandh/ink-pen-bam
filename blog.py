@@ -101,11 +101,13 @@ class Handler(webapp2.RequestHandler):
         print "GET main msgs called..."
         # Get the current main MSG
         try:
-            return self.session['main_user_msgs']
+            if self.session.get('main_user_msgs') == None:
+                print "No main_user_msgs set. Setting EMPTY value..."
+                self.session['main_user_msgs'] = ""
         except:
-            print "No main_user_msgs set. Setting EMPTY value..."
-            self.session['main_user_msgs'] = ""
-            return self.session['main_user_msgs']
+            print "Error getting main msg in 'get_main_msg'..."
+        finally: 
+            return self.session.get('main_user_msgs')
 
     def set_main_msg(self, msg):
         print "SET main msgs called..."
@@ -128,11 +130,13 @@ class Handler(webapp2.RequestHandler):
         print "GET msg type called..."
         # Get the current MSG type if available
         try:
-            return self.session['msg_type']
+            if self.session.get('msg_type') == None:
+                print "No msg_type is set... Setting Empty Value (will default to NOTICE type)..."
+                self.session['msg_type'] = ""
         except:
-            print "No msg_type is set... Setting Empty Value (will default to NOTICE type)..."
-            self.session['msg_type'] = ""
-            return self.session['msg_type']
+            print "Error getting msg type in 'get_msg_type'..."
+        finally:
+            return self.session.get('msg_type')
     
     def set_msg_type(self, msg_type):
         print "SET msg_type called..."
@@ -182,7 +186,7 @@ class Handler(webapp2.RequestHandler):
                 print("'session' COOKIE data does not exist yet...so deleting any leftover Jinja Globals")
                 del jinja_env.globals['inkpenbam_session']
 
-            my_session = jinja_env.globals['inkpenbam_session']
+            my_session = jinja_env.globals.get('inkpenbam_session')
         except:
             print "No Jinja global 'session' exists to GET"
         finally:
@@ -196,7 +200,7 @@ class Handler(webapp2.RequestHandler):
             #self.response.delete_cookie('session', path='/')
             #self.response.set_cookie('session', path='/')
             jinja_env.globals['inkpenbam_session'] = self.session
-            return jinja_env.globals['inkpenbam_session']
+            return self._get_jinja_variable_session()
         except:
             print "Error setting session in Handler()._set_session"
         finally:
@@ -258,7 +262,7 @@ class UserHandler():
         # Additionally set Jinja Global Environment to contain session data, If Not YET Set
         my_session = None
         try:
-            my_session = jinja_env.globals['inkpenbam_session']
+            my_session = jinja_env.globals.get('inkpenbam_session')
         except:
             jinja_env.globals['inkpenbam_session'] = web_obj.session
 
@@ -366,8 +370,8 @@ class UserSignup(Handler):
         last_handler = None
         messages_viewed = 0
         try:
-            last_handler = self.session["curr_handler"]
-            messages_viewed = self.session["messages_viewed"]
+            last_handler = self.session.get("curr_handler")
+            messages_viewed = self.session.get("messages_viewed")
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
@@ -539,7 +543,7 @@ class PostHandler(Handler):
         post_form_error = ""
         try:
             if self.session != None:
-                if self.session['post_%s_form_error' % post_id] != None:
+                if self.sessioni.get('post_%s_form_error' % post_id) != None:
                     # Clear our Post Form Errors
                     self.clear_postform_errors(post_id)
             # Clear our Main MSG area
@@ -652,8 +656,8 @@ class PostHandler(Handler):
         post_form_error = ""
         try:
             if self.session != None:
-                if self.session['post_%s_form_error' % post_id] != None:
-                    post_form_error = self.session['post_%s_form_error' % post_id]
+                if self.session.get('post_%s_form_error' % post_id) != None:
+                    post_form_error = self.session.get('post_%s_form_error' % post_id)
                 
                     print "*Post_FORM_ERROR: %s" % post_form_error
                     
@@ -806,7 +810,7 @@ class PostHandler(Handler):
         post_form_error = ""
         try:
             if self.session != None:
-                if self.session['post_%s_form_error' % post_id] != None:
+                if self.session.get('post_%s_form_error' % post_id) != None:
                     # Clear our Post Form Errors
                     self.clear_postform_errors(post_id)
             # Clear our Main MSG area
@@ -985,7 +989,7 @@ class PostHandler(Handler):
         post_form_error = ""
         try:
             if self.session != None:
-                if self.session['post_%s_form_error' % post_id] != None:
+                if self.session.get('post_%s_form_error' % post_id) != None:
                     # Clear out Post Form Erorrs
                     self.clear_postform_errors(post_id)
             # Clear our Main MSG area
@@ -1056,7 +1060,7 @@ class PostHandler(Handler):
             try:
                 print post.key().id()
                 if post_id == post.key().id():
-                    post_form_error = self.session['post_%s_form_error' % post.key().id()]
+                    post_form_error = self.session.get('post_%s_form_error' % post.key().id())
                 else:
                     self.session['post_%s_form_error' % post.key().id()] = ""
             except:
@@ -1126,8 +1130,8 @@ class NewPost(Handler):
         last_handler = None
         messages_viewed = 0
         try:
-            last_handler = self.session["curr_handler"]
-            messages_viewed = self.session["messages_viewed"]
+            last_handler = self.session.get("curr_handler")
+            messages_viewed = self.session.get("messages_viewed")
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
@@ -1247,8 +1251,8 @@ class Blog(Handler):
         last_handler = None
         messages_viewed = 0
         try:
-            last_handler = self.session["curr_handler"]
-            messages_viewed = self.session["messages_viewed"]
+            last_handler = self.session.get("curr_handler")
+            messages_viewed = self.session.get("messages_viewed")
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
@@ -1336,12 +1340,12 @@ class Welcome(Handler):
         print "IN: Welcome.Handler()"
 
         last_handler = None
-        messages_viewed = 0
-        login_msg_displayed_once = 0    # So first time welcome loaded this session
+        messages_viewed = None
+        login_msg_displayed_once = None    # So first time welcome loaded this session
         try:
-            last_handler = self.session["curr_handler"]
-            messages_viewed = self.session["messages_viewed"]
-            login_msg_displayed_once = self.session["login_msg_displayed_once"]
+            last_handler = self.session.get("curr_handler")
+            messages_viewed = self.session.get("messages_viewed")
+            login_msg_displayed_once = self.session.get("login_msg_displayed_once")
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
@@ -1387,7 +1391,7 @@ class Welcome(Handler):
                 # Get All Posts BY USER
                 user_logged_posts = db.GqlQuery("SELECT * FROM Post WHERE created_by = :created_by ORDER BY created DESC", created_by=username)
 
-                if user_logged_posts.get() == None and login_msg_displayed_once == 0:
+                if user_logged_posts.get() == None and login_msg_displayed_once == None:
                     print "No User POSTS exist...."
                     self.set_main_msg("Hmm...you have 0 posts. Please <a href='/blog/newpost'>add some</a>. :)")
                     main_user_msgs = self.get_main_msg()
@@ -1405,11 +1409,11 @@ class Welcome(Handler):
                 if all_posts.get() != None:
                     # Get ALL the POSTS and set All Post *initial like* values if
                     # this is the first time viewing welcome page after login
-                    if login_msg_displayed_once == 0:
-                        # Set any Post LIKEs for Current Logged in and Valid User
-                        PostHandler().set_post_likes(self, all_posts, user)
-                        # Style Post Form buttons for current user
-                        PostHandler().style_postform_buttons(self, all_posts, user)
+                    #if login_msg_displayed_once == None:
+                    # Set any Post LIKEs for Current Logged in and Valid User
+                    PostHandler().set_post_likes(self, all_posts, user)
+                    # Style Post Form buttons for current user
+                    PostHandler().style_postform_buttons(self, all_posts, user)
 
                 #print "BEFORE render, main_user_msgs is: %s" % main_user_msgs 
                 # Get Current Date Time
@@ -1452,8 +1456,8 @@ class Login(Handler):
         last_handler = None
         messages_viewed = 0
         try:
-            last_handler = self.session["curr_handler"]
-            messages_viewed = self.session["messages_viewed"]
+            last_handler = self.session.get("curr_handler")
+            messages_viewed = self.session.get("messages_viewed")
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
@@ -1497,8 +1501,8 @@ class Login(Handler):
         last_handler = None
         messages_viewed = 0
         try:
-            last_handler = self.session["curr_handler"]
-            messages_viewed = self.session["messages_viewed"]
+            last_handler = self.session.get("curr_handler")
+            messages_viewed = self.session.get("messages_viewed")
         except:
             print "No Last Handler or Errors Viewed values exist"
         finally:
