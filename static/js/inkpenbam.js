@@ -260,6 +260,28 @@ function setPageCurrent(){
 	}
 }
 
+function showHideComments(){
+	console.log("Setting click action to SHOW/HIDE comments on posts...");
+	var allViewCommentLinks = document.querySelectorAll('.view-comments-link');
+	console.log(allViewCommentLinks);
+	for (var i = 0; i < allViewCommentLinks.length; i++){
+		allViewCommentLinks[i].firstChild.addEventListener("click", function(e){
+			// Toggle hidden / visible on associated Comments Section for Post
+			var currCommentDIV = this.parentElement.nextSibling.nextSibling;
+			console.log(currCommentDIV);
+			if (currCommentDIV.classList.contains("comments-hidden")){
+				console.log("Comments were 'hidden', toggling to 'visible'");
+				currCommentDIV.classList.remove("comments-hidden");
+				currCommentDIV.classList.add("comments-visible");
+			} else if (currCommentDIV.classList.contains("comments-visible")){
+				console.log("Comments were 'visible', toggling to 'hidden'");
+				currCommentDIV.classList.remove("comments-visible");
+				currCommentDIV.classList.add("comments-hidden");
+			}
+		});	
+	}
+}
+
 // Document Ready Listener
 if (document.addEventListener){
 	document.addEventListener("DOMContentLoaded", function handler(){
@@ -268,6 +290,7 @@ if (document.addEventListener){
 		displayLoggedIn_User();
 		addMenuSticky();
 		setPageCurrent();
+		showHideComments()
 	}, false);
 //IE Special Case
 } else if (document.attachEvent){
@@ -278,6 +301,7 @@ if (document.addEventListener){
 			displayLoggedIn_User();
 			addMenuSticky();
 			setPageCurrent();
+			showHideComments();
 		}
 	});
 }

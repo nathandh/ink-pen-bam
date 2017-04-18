@@ -1,0 +1,51 @@
+<div class="comment-section">
+	<hr>
+	<div class="comment">
+		<div class="comment-createdby">
+			{{comment.created_by}} 
+		</div>
+		<div class="comment-date-time">
+			 | {{comment.created.strftime("%b %d, %Y | %-I:%M %p")}}
+		</div>
+		<div class="comment-text">
+			{{comment._render_content | safe}}
+		</div>
+	</div>
+	{% set is_comment_owner = "post_%s_comment_%s_owner" % (post.key().id(), comment.key().id()) %}
+	{% if inkpenbam_session[is_comment_owner] == "true" %}
+		{% set post_comment_btn_style = "btn-comment-owner" %}
+	{% elif inkpenbam_session[is_comment_owner] == "false" %}
+		{% set post_comment_btn_style = "btn-comment-viewer" %}
+	{% else %}
+		{% set post_comment_btn_style = "" %}
+	{% endif %}
+	
+	{% set reply_comment_form_id = "reply_%s_comment_form" % comment.key().id() %}
+	{% set edit_comment_form_id  = "edit_%s_comment_form" % comment.key().id() %}
+	{% set delete_comment_form_id = "delete_%s_comment_form" % comment.key().id() %}
+	<div class="comment-actions">
+		<form action="/blog/{{post.key().id()}}/comment/{{comment.key().id()}}" method="POST" 
+			id="{{reply_comment_form_id}}" class="comment-reply-form">
+			<input type="hidden" name="_method" value="REPLY-FORM-REQUEST">
+			<input type="hidden" name="comment_id" value="{{comment.key().id()}}">
+			<button class="btn-small" type="submit" value="Reply">Reply</button>
+		</form>
+		<form action="/blog/{{post.key().id()}}/comment/{{comment.key().id()}}" method="POST" 
+			id={{edit_comment_form_id}} class="comment-edit-form">
+			<input type="hidden" name="_method" value="EDIT-FORM-REQUEST">
+			<input type="hidden" name="comment_id" value="{{comment.key().id()}}">
+			<button class="btn-small {{post_comment_btn_style}}" type="submit" value="Edit">Edit</button>
+		</form>
+		<form action="/blog/{{post.key().id()}}/comment/{{comment.key().id()}}" method="POST" 
+			id="{{delete_comment_form_id}}" class="comment-delete-form">
+			<input type="hidden" name="_method" value="DELETE">
+			<input type="hidden" name="comment_id" value="{{comment.key().id()}}">
+			<button class="btn-small {{post_comment_btn_style}}" type="submit" value="Delete">Delete</button>
+		</form>
+		<div class="comment-forms-error">
+			{% set comment_form_error = "post_%s_comment_%s_form_error" % (post.key().id(), comment.key().id()) %}
+			{{ inkpenbam_session[comment_form_error] }}
+			<!-- inkpenbam_session is a Jinja global session variable set in Handler() class -->
+		</div>
+	</div>
+</div>

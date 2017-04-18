@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}
+	Post: {{post_subject}} | Add NEW Comment
+{% endblock %}
+
+{% block content %}
+	<div class="newcomment-container">
+		{% include 'navmenu.html' %}
+		<hr>
+		<h2>New comment for Post: {{post_subject}}</h2>
+		<div class="permalink"><a href="/blog/{{post.key().id()}}">Permalink: {{post.key().id()}}</a></div>
+		<div class="newcomment-content">	
+			<div class="newcomment">
+				<form action="/blog/{{post.key().id()}}/comment" method="post" id="newcomment_form">
+					<label for="comment">Comment</label>
+					<textarea name="comment">{{comment}}</textarea>
+					<div class="error">
+						{{comment_validation}}
+					</div>
+					<button id="newcomment-submit" class="btn-normal" type="submit" value="Submit">
+						Submit
+					</button>
+				</form>
+			</div>
+		</div>
+	</div>
+{% endblock %}

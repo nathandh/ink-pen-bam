@@ -37,7 +37,7 @@ body {
 	text-decoration: none;
 	color: #CFB208;
 }
-.post-forms-error {
+.post-forms-error, .comment-forms-error {
 	padding-top: 6px;
 	color: red;
 }
@@ -69,6 +69,24 @@ body {
 	font-size: 10px;
 	text-align: right;
 	clear: both;
+}
+.newcomment-container > .permalink {
+	text-align: left;
+	display: block;
+	padding-top: 0px;
+	margin-top: 0px;
+}
+.editcomment-container > .permalink {
+	text-align: left;
+	display: block;
+	padding-top: 0px;
+	margin-top: 0px;
+}
+.replycomment-container > .permalink {
+	text-align: left;
+	display: block;
+	padding-top: 0px;
+	margin-top: 0px;
 }
 .signup_login {
 	text-align: right;
@@ -360,8 +378,144 @@ body {
 	font-weight: bold;
 }
 
-/* Post EDIT and DELETE Forms */
-.post-edit-form, .post-delete-form, .post-like-form, .post-comment-form {
+/* Post COMMENT Form Specific */
+.newcomment-content {
+	padding: 12px;
+	margin-left: 8px;
+}
+.newcomment {
+	margin: 0 auto;
+}
+.newcomment label, .newcomment input {
+	display: block;
+}
+.newcomment input, .newcomment textarea {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	margin-bottom: 5px;
+}
+.newcomment input {
+	width: 75%;
+}
+.newcomment textarea {
+	width: 40%;
+	height: 200px;
+	font-family: sans-serif;
+}
+#newcomment-submit {
+	width: auto;
+}
+.newcomment > form > .error {
+	color: red;
+	font-weight: bold;
+}
+
+/* EDIT Post COMMENT Form Specific */
+.editcomment-content {
+	padding: 12px;
+	margin-left: 8px;
+}
+.editcomment {
+	margin: 0 auto;
+}
+.editcomment label, .editcomment input {
+	display: block;
+}
+.editcomment input, .editcomment textarea {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	margin-bottom: 5px;
+}
+.editcomment input {
+	width: 75%;
+}
+.editcomment textarea {
+	width: 40%;
+	height: 200px;
+	font-family: sans-serif;
+}
+#editcomment-submit {
+	width: auto;
+}
+.editcomment > form > .error {
+	color: red;
+	font-weight: bold;
+}
+
+/* REPLY to a  COMMENT Form Specific */
+.replycomment-content {
+	padding: 12px;
+	margin-left: 8px;
+}
+.replycomment {
+	margin: 0 auto;
+}
+.replycomment label, .replycomment input {
+	display: block;
+}
+.replycomment input, .replycomment textarea {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	margin-bottom: 5px;
+}
+.replycomment input {
+	width: 75%;
+}
+.replycomment textarea {
+	width: 40%;
+	height: 200px;
+	font-family: sans-serif;
+}
+#replycomment-submit {
+	width: auto;
+}
+.replycomment > form > .error {
+	color: red;
+	font-weight: bold;
+}
+
+/* Reply Containers in comment thread */
+.reply-container {
+	padding-left: 3em;
+}
+
+/* Displayed Post Comments styles */
+.comments-hidden {
+	display: none;
+}
+.comments-visible {
+	display: block;
+}
+.view-comments-link {
+	margin-top: .8em;
+}
+.view-comments-link > .btn-small {
+	background: #919A6F;
+}
+.comment-section div {
+	display: inline;
+}
+.comment-text {
+	display: block !important;
+}
+.comment-createdby {
+	font-weight: bold;
+	color: #0E142D;
+}
+.comment-date-time {
+	font-size: 15px;
+}
+.comment-text {
+	margin-top: 12px;
+	margin-left: 0px;
+}
+
+/* Post EDIT, DELETE, LIKE, COMMENT Forms */
+.post-edit-form, .post-delete-form, .post-like-form, .post-comment-form, 
+.comment-reply-form, .comment-edit-form, .comment-delete-form {
 	display: inline;
 }
 
@@ -586,6 +740,17 @@ input[type=submit], .btn-normal {
 	text-decoration: none;
 	font-size: 1em;
 }
+.btn-small {
+	padding: 4px 8px;
+	background: #E4A42B;
+	color: #D4E6F1;
+	border: 0 none;
+	cursor: pointer;
+	-webkit-border-radius: 4px;
+	border-radius: 4px;
+	text-decoration: none;
+	font-size: .8em;
+}
 .btn-post-like {
 	opacity: 1;
 }
@@ -615,6 +780,12 @@ input[type=submit], .btn-normal {
 	/* Mute our buttons to indicate that their
 	   functions can't be used by current user */
 	background: #787F9C;
+}
+.btn-comment-owner {
+	/* Defaults to .btn-normal above used for now */
+}
+.btn-comment-viewer {
+	background: #B6B4B1;
 }
 
 /* Media Queries */
@@ -715,6 +886,13 @@ input[type=submit], .btn-normal {
 		margin-top: -20px !important;
 		content: " ";
 		visibility: hidden;
+	}
+
+	/* New Comment Form specific */
+	.newcomment textarea {
+		width: 75%;
+		height: 150px;
+		font-family: sans-serif;
 	}
 }
 

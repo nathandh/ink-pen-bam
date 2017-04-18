@@ -1,0 +1,18 @@
+{% if post.post_comments.count() == 0 %}
+	<h4>No comments yet :(</h4>
+{% else %}
+	{% for comment in post.post_comments.order('created') %}
+		{% if comment.comment_parent == None %}
+			{{ comment.render(post) | safe }}
+		{% endif %}
+		{% set outer_loop = loop %}
+		{% for reply in comment.replies.order('created') recursive %}
+			{% if outer_loop.index0 == 0 %}
+				<div class="reply-container">
+					{{ reply.render(post) | safe }}
+					{{ loop(reply.replies) }}
+				</div>
+			{% endif %}
+		{% endfor %}
+	{% endfor %}
+{% endif %}

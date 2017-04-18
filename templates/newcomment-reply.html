@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}
+	Reply to: {{comment.user.username}} | Post: {{post_subject}}
+{% endblock %}
+
+{% block content %}
+	<div class="replycomment-container">
+		{% include 'navmenu.html' %}
+		<hr>
+		<h2>Reply to: {{comment.user.username}} | Post: {{post_subject}}</h2>
+		<div class="permalink"><a href="/blog/{{post.key().id()}}">Permalink: {{post.key().id()}}</a></div>
+		<div class="replay-parent-comment">{{comment.render_single() | safe}}</div>
+		<hr>
+		<div class="replycomment-content">	
+			<div class="replycomment">
+				<form action="/blog/{{post.key().id()}}/comment/{{comment.key().id()}}" method="post" id="replycomment_form">
+					<label for="reply">Reply</label>
+					<textarea name="reply">{{reply}}</textarea>
+					<div class="error">
+						{{reply_validation}}
+					</div>
+
+					<input type="hidden" name="_method" value="REPLY">
+					<input type="hidden" name="comment_id" value="{{comment.key().id()}}">
+					<button id="replycomment-submit" class="btn-normal" type="submit" value="Submit">
+						Submit Reply
+					</button>
+					<a class="btn-normal" href="/blog/{{post.key().id()}}">
+						Cancel
+					</a>
+				</form>
+			</div>
+		</div>
+	</div>
+{% endblock %}

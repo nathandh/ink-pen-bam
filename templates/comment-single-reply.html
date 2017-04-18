@@ -1,0 +1,16 @@
+<div class="single-content-container">
+	<div class="comment-section">
+		<hr>
+		<div class="comment">
+			<div class="comment-createdby">
+				{{comment.created_by}} 
+			</div>
+			<div class="comment-date-time">
+				 | {{comment.created.strftime("%b %d, %Y | %-I:%M %p")}}
+			</div>
+			<div class="comment-text">
+				{{comment._render_single | safe}}
+			</div>
+		</div>
+	</div>
+</div>

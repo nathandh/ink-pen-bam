@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}
+	EDITING COMMENT for Post: {{post.subject}}
+{% endblock %}
+
+{% block content %}
+	<div class="editcomment-container">
+		{% include 'navmenu.html' %}
+		<hr>
+		<h2>Edit COMMENT for Post: {{post.subject}}</h2>
+		<div class="permalink"><a href="/blog/{{post.key().id()}}">Permalink: {{post.key().id()}}</a></div>
+		<div class="editcomment-content">	
+			<div class="editcomment">
+				<form action="/blog/{{post.key().id()}}/comment/{{comment.key().id()}}" method="post" id="editcomment_form">
+					<label for="comment">Comment</label>
+					<textarea name="comment">{{comment_body}}</textarea>
+					<div class="error">
+						{{comment_validation}}
+					</div>
+
+					<input type="hidden" name="_method" value="EDIT">
+					<input type="hidden" name="comment_id" value="{{comment.key().id()}}">
+					<button id="editcomment-submit" class="btn-normal" type="submit" value="Submit">
+						Submit Edit
+					</button>
+					<a class="btn-normal" href="/blog/{{post.key().id()}}">
+						Cancel
+					</a>
+				</form>
+			</div>
+		</div>
+	</div>
+{% endblock %}

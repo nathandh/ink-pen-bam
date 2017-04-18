@@ -180,7 +180,8 @@ class Handler(webapp2.RequestHandler):
         # Get Jinja Global Environment Session object
         my_session = None
         try:
-            print "Curr cookie is: %s" % self.request.cookies.get('session')
+            # Uncomment for additional debugging
+            #print "Curr cookie is: %s" % self.request.cookies.get('session')
         
             if self.request.cookies.get('session') == None:
                 print("'session' COOKIE data does not exist yet...so deleting any leftover Jinja Globals")
@@ -505,7 +506,10 @@ class PostHandler(Handler):
         post = Post.get_by_id(long(post_id))
     
         if post != None:
-            self.render("permalink.html", permalink=post_id, post=post)
+            if self._get_jinja_variable_session() != None:
+                self.render("permalink.html", permalink=post_id, post=post)
+            else:
+                self.redirect("/blog")
         else:
             self.redirect("/blog")
     
@@ -518,14 +522,16 @@ class PostHandler(Handler):
             if method == "DELETE":
                 # Delete our Post
                 self.delete_post(post_id)
+            elif method == "EDIT-FORM-REQUEST":
+                # This is a main post edit REQUEST, not direct edit action submit.
+                subject = None
+                content = None
+                initial_render = "true"
+                self.edit_post(post_id, subject, content, initial_render)
             elif method == "EDIT":
-                # Edit our Post Request, Pass Subject/Content if exists
+                # Edit our Post ACTION, Pass Subject/Content that was posted
                 subject = self.request.get("subject")
                 content = self.request.get("content")
-                if subject == "":
-                    subject = None
-                if content == "":
-                    content = None
                 self.edit_post(post_id, subject, content)
             elif method == "LIKE":
                 # Like a Post Request
@@ -543,7 +549,7 @@ class PostHandler(Handler):
         post_form_error = ""
         try:
             if self.session != None:
-                if self.sessioni.get('post_%s_form_error' % post_id) != None:
+                if self.session.get('post_%s_form_error' % post_id) != None:
                     # Clear our Post Form Errors
                     self.clear_postform_errors(post_id)
             # Clear our Main MSG area
@@ -644,7 +650,7 @@ class PostHandler(Handler):
 
                 self.redirect("/blog/welcome")
 
-    def edit_post(self, post_id, subject, content):
+    def edit_post(self, post_id, subject, content, initial_render=None):
         print "IN: PostHandler().edit_post()"
         self.session["curr_handler"] = "PostHandler"
         
@@ -723,10 +729,13 @@ class PostHandler(Handler):
                 # Post Edit
                 if curr_post != None:
                     #EDIT POST HERE
-                    if (subject == None and content == None):
+                    if ((subject == None and content == None) or (subject == "" or content == "")):
                         # Render our EditPost page for post editing
-                        subject = curr_post.subject
-                        content = curr_post.content
+                        if (initial_render == "true"):
+                            print "Initial EDIT-FORM-REQUEST received...."
+                            # Set our default form values to what is in datastore
+                            subject = curr_post.subject
+                            content = curr_post.content
                         
                         subject_validation = ""
                         content_validation = ""
@@ -880,13 +889,11 @@ class PostHandler(Handler):
                         print "No LIKE exists for this USER on this post...."
                         print "*****Marking Post as LIKED by USER 1st time*****"
                         like = Like(post=curr_post, user=user, liked="true")
-                        like.put()
-                        
-                        # Validate like for user still exists
-                        post_check = Post.get_by_id(long(post_id))
-                        d_result = post_check.post_likes.filter('user =', user).get()
-                        if d_result != None:
-                            print "Post Check for Like returned: %s" % d_result.liked
+                        key = like.put()
+          
+                        # Validate like for user exists now
+                        like_check = Like.get(key)
+                        print "New post LIKE is: %s" % like_check
                         
                         # Set Messages and Redirect back to Welcome Home Page
                         # Display notice message saying that post was liked
@@ -944,13 +951,14 @@ class PostHandler(Handler):
                             liked_user_msg = "LIKED Post: %s" % post_subject
 
                         liked_obj.liked = new_liked_val
-                        liked_obj.put()
+                        key = liked_obj.put()
 
                         # Validate like for user still exists
-                        post_check = Post.get_by_id(long(post_id))
-                        d_result = post_check.post_likes.filter('user =', user).get()
-                        if d_result != None:
-                            #print "Post Check for Like returned: %s" % d_result.liked
+                        like_check = Like.get(key)
+                        print "Post LIKE check for USER returned: %s" % like_check.liked
+                        
+                        if like_check != None:
+                            #print "Like Check for Like returned: %s" % like_check.liked
                             
                             # Set Messages and Redirect back to Welcome Home Page
                             # Display notice message saying Previously Liked Post already
@@ -982,7 +990,16 @@ class PostHandler(Handler):
 
     def comment_post(self, post_id):
         print "IN: PostHandler().comment_post()"
-        self.session["curr_handler"] = "PostHandler"
+        
+        last_handler = None
+        messages_viewed = 0
+        try:
+            last_handler = self.session.get("curr_handler")
+            messages_viewed = self.session.get("messages_viewed")
+        except:
+            print "No Last Handler or Errors Viewed values exist"
+        finally:
+            self.session["curr_handler"] = "PostHandler"
 
         curr_post = Post.get_by_id(long(post_id))
 
@@ -1024,6 +1041,8 @@ class PostHandler(Handler):
                 print "post subject is: %s" % curr_post.subject
                 post_short_tag = "'%s...'" % curr_post.subject[0:20]
                 self.set_main_msg("Please <a href='/blog/login'>Login</a> to COMMENT on post: %s" % post_short_tag)
+                self.set_msg_type("error")
+                
                 print "After COMMENT click, session data is: %s" % self.session
 
                 # Set error message to NOT viewed
@@ -1037,19 +1056,28 @@ class PostHandler(Handler):
             except:
                 print "Cannot add session variable in COMMENT Post"
         
-        print "USER Not Logged in...for COMMENT"
+            print "USER Not Logged in...for COMMENT"
 
         """
         COMMENT POST control for VALID and LOGGED IN User
         """
         if user_logged_in == True and user_valid == True:
             # Then we can proceed to COMMENT on post
+            
+            # Get User Messages to display if applicable
+            #main_user_msgs = self.get_main_msg()
+            #msg_type = self.get_msg_type()
 
             # Used in Notice to User below on successful comment
-            post_subject = curr_post.subject[:20]
+            #post_subject = curr_post.subject[:20]
 
             if curr_post != None:
                 print "We are about to add a comment...."
+                self.redirect("/blog/%s/comment" % post_id)
+                #self.render("newcomment.html", comment_validation="", main_user_msgs=main_user_msgs, msg_type=msg_type, post=curr_post, post_subject=post_subject)
+
+                #### LEft of here implementing COMMENTS 4/16/2017
+            else:
                 self.redirect("/blog/welcome")
 
     def clear_postform_errors(self, post_id):
@@ -1109,6 +1137,591 @@ class PostHandler(Handler):
             finally:
                 web_obj._set_jinja_variable_session()
                     
+class PostCommentHandler(Handler):
+    def add_new_comment(self, post, user, comment, parent=None):
+        """
+        As per our DB we will need: a) post instance, b) user instance, c) parent_ Comment instance,
+        d) comment text body, and e) created_by (user instance user.username) to 
+        create a new comment for the post
+        """
+        c = Comment(post=post, user=user, comment_parent=parent, comment=comment, created_by=user.username)
+        key = c.put()
+
+        # Do quick lookup of comment just put()
+        new_comment = Comment.get(key)
+        print "New comment is: %s" % new_comment
+        
+        # Update session to reflect this user as 'post-comment owner
+        self.session["post_%s_comment_%s_owner" % (post.key().id(), c.key().id())] = "true"
+        self._set_jinja_variable_session()
+
+        # Redirect to blog post permalink page which displays comments
+        self.redirect("/blog/%s" % post.key().id())
+
+    def get(self, post_id, comment_id=None):
+        print "IN: PostCommentHandler()"
+
+        # Determine if we are viewing an existing comment or adding a new comment
+        if post_id and comment_id != None:
+            print "Post ID: %s, Comment ID: %s" % (post_id, comment_id)
+        elif comment_id == None:
+            print "Receiving a NEW Comment request for post: %s" % post_id
+
+        curr_post = Post.get_by_id(long(post_id))
+        # Used in Templates for new Comment below
+        post_subject = curr_post.subject[:20]
+        
+        last_handler = None
+        messages_viewed = 0
+        try:
+            last_handler = self.session.get("curr_handler")
+            messages_viewed = self.session.get("messages_viewed")
+        except:
+            print "No Last Handler or Errors Viewed values exist"
+        finally:
+            self.session["curr_handler"] = "PostCommentHandler"
+
+    
+        # Refresh our stored Jinja inkpenbam session variable
+        stored_jinja_session = self._get_jinja_variable_session()
+        if stored_jinja_session == None:
+            self._set_jinja_variable_session()
+        
+        # Get referrer source
+        source = self.get_ref_source()
+        if source != None:
+            if messages_viewed == 1:
+                # Clear any previous session messages to display clean page
+                print "Previously displayed errors. So clearing..."
+                self.clear_main_msg()
+
+        # Get User Messages to display if applicable
+        main_user_msgs = self.get_main_msg()
+        msg_type = self.get_msg_type()
+
+        # See if User is logged on, and if Not then Redirect to Signup Page
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+        if user_info:
+            # Some user cookie exists
+            user_logged_in = True
+
+            # Check validity of cookie info against DataStore
+            user = UserHandler().user_loggedin_valid(self, user_info)
+
+            if user:
+                user_valid = True
+                # Allow redirection to NEW Comment oage
+                self.render("newcomment.html", comment_validation="", main_user_msgs=main_user_msgs,
+                            msg_type=msg_type, post=curr_post, post_subject=post_subject)
+            else:
+                print "Cookie invalid @ PostCommentHandler!"
+
+        # Mark any Error msgs as viewed if applicable
+        if self.get_main_msg() != None and self.get_main_msg() != "":
+            self.session["messages_viewed"] = 1
+            self._set_jinja_variable_session()
+
+        if user_logged_in == False or user_valid == False:
+            self.set_main_msg("You need to <a href='/blog/login'>Login</a> to COMMENT on a post.")
+            self.set_msg_type("error")
+            self.session["messages_viewed"] = 0
+            self._set_jinja_variable_session()
+            self.redirect("/blog/login")
+
+    def post_comment(self, web_obj, post_id):
+        created_by = None
+        user = None
+        
+        # Grab our logged in user info
+        user_info = UserHandler().user_logged_in(web_obj)
+        if user_info:
+            user = UserHandler().user_loggedin_valid(web_obj, user_info)
+            if user:
+                created_by = user.username
+
+        post_id = post_id
+        post = Post.get_by_id(long(post_id))
+        comment = web_obj.request.get("comment")
+
+        comment_validation = ""
+
+        validation_error = False
+
+        if comment == "":
+            # Create a validation error and msg
+            comment_validation = "Comment text must be entered before submit..."
+            validation_error = True
+
+        main_user_msgs = None
+        msg_type = None
+        if validation_error == True:
+            print "We have a validation error, so setting Main MSG"
+            web_obj.clear_main_msg()
+            web_obj.clear_msg_type()
+            web_obj.set_main_msg("Comment values missing...")
+            web_obj.set_msg_type("error")
+            main_user_msgs = web_obj.get_main_msg()
+            msg_type = web_obj.get_msg_type()
+
+            # Update our session variable
+            web_obj.session["messages_viewed"] = 1
+            web_obj._set_jinja_variable_session()
+
+        """
+        If all OK add our Comment, else re-render page with error msg
+        """
+        if validation_error == False:
+            web_obj.add_new_comment(post, user, comment)
+        else:
+            web_obj.render("newcomment.html", post=post, post_subject=post.subject[:20], 
+                        comment=comment, comment_validation=comment_validation,
+                        main_user_msgs=main_user_msgs, msg_type=msg_type)
+
+    def post(self, post_id, comment_id=None):
+        if comment_id == None:
+            # We have a *initial* top level new COMMENT action
+            print "Received an *initial* top level new comment request..."
+            # Send to handler method
+            self.post_comment(self, post_id)
+        else:
+            # We have an existing COMMENT action
+            url_post_id = post_id
+            url_comment_id = comment_id
+            method = self.request.get("_method").upper()
+            comment_id = self.request.get("comment_id")
+
+            if url_comment_id == comment_id:
+                print "Received a %s request for comment...." % method
+                if method == "REPLY-FORM-REQUEST":
+                    # This is a main reply REQUEST, not a direct REPLY action body submit
+                    reply_body = None
+                    initial_render = "true"
+                    self.reply_comment(comment_id, post_id, reply_body, initial_render)
+                elif method == "REPLY":
+                    # Add a comment reply ACTION caller
+                    # Pass REPLY text as posted
+                    print "...in case...REPLY"
+                    reply_body = self.request.get("reply")
+                    self.reply_comment(comment_id, post_id, reply_body)
+                elif method == "EDIT-FORM-REQUEST":
+                    # This is a main comment edit REQUEST, not a direct edit action submit.
+                    comment_body = None
+                    initial_render = "true"
+                    self.edit_comment(comment_id, comment_body, post_id, initial_render)
+                elif method == "EDIT":
+                    # Edit comment ACTION caller
+                    # Pass COMMENT text as posted
+                    print "...in case...EDIT"
+                    comment_body = self.request.get("comment")
+                    self.edit_comment(comment_id, comment_body, post_id)
+                elif method == "DELETE":
+                    # Delete our Comment right
+                    print "...in case...DELETE"
+                    self.delete_comment(comment_id, post_id)
+
+                #redirect("/blog/welcome");
+    
+    def reply_comment(self, comment_id, post_id, reply_body, initial_render=None):
+        print "IN: PostCommentHandler().reply_comment()"
+        
+        # OUR PARENT objects
+        parent_comment = Comment.get_by_id(long(comment_id))
+        parent_post = Post.get_by_id(long(post_id))
+        
+        last_handler = None
+        messages_viewed = 0
+        try:
+            last_handler = self.session.get("curr_handler")
+            messages_viewed = self.session.get("messages_viewed")
+        except:
+            print "No Last Handler or Errors Viewed values exist..."
+        finally:
+            self.session["curr_handler"] = "PostCommentHandler"
+
+        # Refresh our stored jinja inkpenbam session variable
+        stored_jinja_session = self._get_jinja_variable_session()
+        if stored_jinja_session == None:
+            self._set_jinja_variable_session()
+
+        # Get referrer source
+        source = self.get_ref_source()
+        if source != None:
+            if messages_viewed == 1:
+                # Clear any previous session messages to display a clean page
+                print "Previously displayed errors. So clearing..."
+                self.clear_main_msg()
+
+        # Get User MSGS to display
+        main_user_msgs = self.get_main_msg()
+        msg_type = self.get_msg_type()
+
+        # Used for user output later
+        post_subject = parent_post.subject[:20]
+
+        # Check if user is logged in, and if not redirect to LOGIN
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+        if user_info:
+            # Some user cookie exists
+            user_logged_in = True
+
+            # Check validity of that user
+            user = UserHandler().user_loggedin_valid(self, user_info)
+
+            if user:
+                user_valid = True
+                # We have a logged on and valid user who can post a comment reply....
+                # Set some default values
+                reply_validation = ""
+                validation_error = False
+                main_user_msgs = ""
+                msg_type = None
+                
+                if reply_body == None and initial_render == "true":
+                    # We can just skip out initial form validation
+                    print "Initial REPLY-FORM-REQUEST received..."
+                    reply_body = ""
+                else:
+                    # Then our user is submitting an actual reply, from the form
+                    # PEFORM some validation
+                    if reply_body == "":
+                        reply_validation = "Reply must contain REPLY text before submit..."
+                        validation_error = True
+
+                    if validation_error == True:
+                        print "We have a validation error....Setting msg for our user..."
+                        self.clear_main_msg()
+                        self.clear_msg_type()
+                        self.set_main_msg("Reply values are missing...")
+                        self.set_msg_type("error")
+                        main_user_msgs = self.get_main_msg()
+                        msg_type = self.get_msg_type()
+
+                        # Update session variables
+                        self.session["messages_viewed"] = 1
+                        self._set_jinja_variable_session()
+
+                if reply_body == "" or validation_error == True:
+                    # Render our Reply Form in either case
+                    self.render("newcomment-reply.html", reply_validation=reply_validation, 
+                                main_user_msgs=main_user_msgs, msg_type=msg_type, post=parent_post, 
+                                comment=parent_comment, post_subject=post_subject, reply=reply_body)
+                elif reply_body != "" and validation_error == False:
+                    # Go ahead and create the reply....
+                    print "ADDING THE REPLY to datastore"
+                    c = Comment(post=parent_post, user=user, comment_parent=parent_comment, 
+                                comment=reply_body, created_by=user.username)
+                    key = c.put()
+
+                    # Do a quick verify of add
+                    new_reply = Comment.get(key)
+                    print "New Reply is: %s" % new_reply
+
+                    # Update session to reflect user as reply (i.e. a comment object) OWNER
+                    self.session["post_%s_comment_%s_owner" % (parent_post.key().id(), c.key().id())] = "true"
+                    self._set_jinja_variable_session()
+
+                    # Redirect to blog post permalink page which displays all comments and replies
+                    self.redirect("/blog/%s" % parent_post.key().id())
+            else:
+                print "Cookie invalide @ PostCommentHandler REPLY"
+
+        # Mark any Error msgs as viewed if applicable
+        if self.get_main_msg() != None and self.get_main_msg() != "":
+            self.session["messages_viewed"] = 1
+            self._set_jinja_variable_session()
+
+        if user_logged_in == False or user_valid == False:
+            self.set_main_msg("You need to <a href='/blog/login'>Login</a> to REPLY to a post comment.")
+            self.set_msg_type("error")
+            self.session["messages_viewed"] = 0
+            self._set_jinja_variable_session()
+            self.redirect("/blog/login")
+    
+    def edit_comment(self, comment_id, comment_body, post_id, initial_render=None):
+        print "IN: PostCommentHandler().edit_comment()"
+        self.session["curr_handler"] = "PostCommentHandler"
+
+        curr_comment = Comment.get_by_id(long(comment_id))
+        parent_post = Post.get_by_id(long(post_id))
+
+        # Used for user output later
+        post_subject = parent_post.subject[:20]
+
+        comment_form_error = ""
+        try:
+            if self.session.get("post_%s_comment_%s_form_error" % (post_id, comment_id)) != None:
+                # Clear our Comment Form Errors
+                self.clear_commentform_errors(comment_id, post_id)
+            # Clear our Main MSG area
+            self.clear_main_msg()
+        except:
+            print "Nothing exists in COMMENT_FORM_ERROR value in session."
+
+        print ("EDIT Comment received...")
+
+        # Check fro logged in / valid user
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+        user = None
+
+        if user_info:
+            user_logged_in = True
+            user = UserHandler().user_loggedin_valid(self, user_info)
+            if user: 
+                user_valid = True
+            else:
+                print "Cookie invalid @ PostCommentHandler!"
+        
+        if user_logged_in == False and user_valid == False:
+            print "Either NOT Logged In, or NOT Valid..."
+            # set error message for user
+            try:
+                self.session["post_%s_comment_%s_form_error" % (post_id, comment_id)] = "MUST Login to EDIT a COMMENT!"
+                self.set_main_msg("Please <a href='/blog/login'>Login</a> to EDIT COMMENT for post: '%s...'" 
+                                    % post_subject)
+                self.set_msg_type("error")
+                self.session["messages_viewed"] = 0
+                self._set_jinja_variable_session()
+                self.redirect("/blog/login")
+            except:
+                print "Cannot add session variables for EDIT comment action"
+
+            print "USER Not Logged In....for EDIT comment"
+
+        if user_logged_in == True and user_valid == True:
+            # Then we can delete this comment, if they are comment owner
+            if curr_comment.created_by == user.username:
+                print "User is OWNER of Comment. *CAN* Edit"
+                # Comment Edit
+                if curr_comment != None:
+                    #EDIT COMMENT HERE
+                    if comment_body == None or comment_body == "":
+                        #Render our EditComment Page for comment editing
+                        if (initial_render == "true"):
+                            # Set our default form values to what is in datastore
+                            comment_body = curr_comment.comment
+
+                        comment_validation = ""
+                        validation_error = False
+
+                        if comment_body == "":
+                            comment_validation = "Comment must contain TEXT body before submit..."
+                            validation_error = True
+
+                        main_user_msgs = ""
+                        msg_type = None
+
+                        if validation_error == True:
+                            print "We have a validation error....So setting main message..."
+                            self.clear_main_msg()
+                            self.clear_msg_type()
+                            self.set_main_msg("Edit COMMENT values missing...")
+                            self.set_msg_type("error")
+                            main_user_msgs = self.get_main_msg()
+                            msg_type = self.get_msg_type()
+
+                            # Update session variable
+                            self.session["messages_viewed"] = 1
+                            self._set_jinja_variable_session()
+
+                        self.render("editcomment.html", post=parent_post, comment=curr_comment,
+                                    comment_body=comment_body, comment_validation=comment_validation, 
+                                    main_user_msgs=main_user_msgs, msg_type=msg_type)
+                    else:
+                        # Use the values from the request
+                        print "Post comment body received...Performing Update..."
+                        curr_comment.comment=comment_body
+                        curr_comment.put()
+
+                        # Check to make sure comment still exists
+                        comment_check = Comment.get_by_id(long(comment_id))
+                        print "Comment Check returned: %s" % comment_check
+
+                        # Notify if we can't find Comment instance for some reason
+                        if comment_check == None:
+                            print "CANNOT find Comment instance!"
+                        else:
+                            print "SUCCESS Editing Comment instance!"
+                            # display notices indicating success
+                            self.clear_main_msg()
+                            self.clear_msg_type()
+                            self.set_main_msg('Success in editing COMMENT for Post: "%s"' % post_subject)
+                            self.set_msg_type("notice")
+
+                            # Update session variables
+                            self.session["messages_viewed"] = 0
+                            self._set_jinja_variable_session()
+
+                        self.redirect("/blog/welcome")
+            # USER is NOT OWNER of COMMENT. So can't EDIT
+            else:
+                print "*ERROR in EDITING comment instance with logged in and valid user...*"
+                # Display error message indicating they need to be comment owner to delete
+                self.clear_main_msg()
+                self.clear_msg_type()
+                self.set_main_msg("You can ONLY edit your own comments...")
+                self.set_msg_type("error")
+
+                # Update session variables
+                self.session["messages_viewed"] = 0
+                self._set_jinja_variable_session()
+
+                self.redirect("/blog/welcome")
+    
+    def delete_comment(self, comment_id, post_id):
+        print "IN: PostCommentHandler().delete_comment()"
+        self.session["curr_handler"] = "PostCommentHandler"
+
+        curr_comment = Comment.get_by_id(long(comment_id))
+        parent_post = Post.get_by_id(long(post_id))
+
+        # Used for user output later
+        post_subject = parent_post.subject[:20]
+
+        comment_form_error = ""
+        try:
+            if self.session.get("post_%s_comment_%s_form_error" % (post_id, comment_id)) != None:
+                # Clear our Comment Form Errors
+                self.clear_commentform_errors(comment_id, post_id)
+            # Clear our Main MSG area
+            self.clear_main_msg()
+        except:
+            print "Nothing exists in COMMENT_FORM_ERROR value in session."
+
+        print ("DELETE Comment received...")
+
+        # Check fro logged in / valid user
+        user_logged_in = False
+        user_valid = False
+        user_info = UserHandler().user_logged_in(self)
+        user = None
+
+        if user_info:
+            user_logged_in = True
+            user = UserHandler().user_loggedin_valid(self, user_info)
+            if user: 
+                user_valid = True
+            else:
+                print "Cookie invalid @ PostCommentHandler!"
+        
+        if user_logged_in == False and user_valid == False:
+            print "Either NOT Logged In, or NOT Valid..."
+            # set error message for user
+            try:
+                self.session["post_%s_comment_%s_form_error" % (post_id, comment_id)] = "DELETE requires Login!"
+                self.set_main_msg("Please <a href='/blog/login'>Login</a> to DELETE comment for post: '%s...'" 
+                                    % post_subject)
+                self.set_msg_type("error")
+                self.session["messages_viewed"] = 0
+                self._set_jinja_variable_session()
+                self.redirect("/blog/login")
+            except:
+                print "Cannot add session variables for DELETE comment action"
+
+            print "USER Not Logged In....for DELETE comment"
+
+        if user_logged_in == True and user_valid == True:
+            # Then we can delete this comment, if they are comment owner
+            if curr_comment.created_by == user.username:
+                print "User is OWNER of Comment. *CAN* Delete"
+                # Comment Deletion
+                if curr_comment != None:
+                    try:
+                        def del_curr_comment(c):
+                            if c.replies.count() == 0:
+                                print "in case no children"
+                                c.delete()
+                            else:
+                                for c_child in c.replies:
+                                    print "in case child"
+                                    del_curr_comment(c_child)
+
+                                # Delete the child
+                                c_child.delete()
+                                # Delete the master parent, 'curr_comment'
+                                c.delete()
+                                    
+                        # Call recursive delete on current comment entity
+                        del_curr_comment(curr_comment)
+                    except:
+                        print "Error deleteing comments and associated replies...."
+                    finally:
+                        print "Done handling comment delete...submitting output of result."
+
+                # Check to make sure comment is delete
+                comment_check = Comment.get_by_id(long(comment_id))
+                print "Comment Check returned: %s" % comment_check
+
+                # Redirect if Comment instance deleted successfully
+                if comment_check == None:
+                    # Clear any messages
+                    self.clear_main_msg()
+                    self.clear_msg_type()
+                    # Set success msg
+                    self.set_main_msg('Success in deleting COMMENT for Post: "%s"' % post_subject)
+                    self.set_msg_type("notice")
+
+                    # Update session variable
+                    del self.session["post_%s_comment_%s_owner" % (post_id, comment_id)]
+                    self.session["messages_viewed"] = 0
+                    self._set_jinja_variable_session()
+                    self.redirect("/blog/welcome")
+                else:
+                    print "DELETE of COMMENT instance failed!"
+            #USER is NOT Owner of COMMENT here. So Can't DELETE
+            else:
+                print "*ERROR in DELETING comment instance with logged in and valid user...*"
+                # Display error message indicating they need to be comment owner to delete
+                self.clear_main_msg()
+                self.clear_msg_type()
+                self.set_main_msg("You can ONLY delete your own comments...")
+                self.set_msg_type("error")
+
+                # Update session variables
+                self.session["messages_viewed"] = 0
+                self._set_jinja_variable_session()
+
+                self.redirect("/blog/welcome")
+
+    def clear_commentform_errors(self, comment_id, post_id):
+        print "Clearing any PREVIOUSLY set comment_form_error for Comments"
+
+        comments = Comment.all()
+        for comment in comments:
+            try:
+                if comment_id == comment.key().id():
+                    comment_form_error = self.session.get("post_%s_comment_%s_form_error" % (post_id, comment_id))
+                else:
+                    self.session["post_%s_comment_%s_form_error" % (post_id, comment_id)] = ""
+            except:
+                print "FAILURE clearing Comment Form Errors..."
+            finally:
+                self._set_jinja_variable_session()
+
+        print "Exiting clear_commentform_errors()"
+
+    def style_commentform_buttons(self, web_obj, post, user):
+        print "Styling comment buttons for the current user..."
+        print post.subject
+
+        for c in post.post_comments:
+            try:
+                if c.created_by == user.username:
+                    print "User is owner of Comment...so updating session variables"
+                    web_obj.session["post_%s_comment_%s_owner" % (post.key().id(), c.key().id())] = "true"
+                else:
+                    print "...this is someone else's comment..."
+                    web_obj.session["post_%s_comment_%s_owner" % (post.key().id(), c.key().id())] = "false"
+            except:
+                print "Error styling comment button on posts by OWNER"
+            finally:
+                web_obj._set_jinja_variable_session()
+
 """
 NEW Post URL Handler, for our blog post additions
 """
@@ -1299,6 +1912,14 @@ class Blog(Handler):
                             self.session['post_%s_form_error' % p.key().id()] = ""
                             # Update session to reflect logged out, and therefore not post owner
                             self.session["post_%s_owner" % p.key().id()] = ""
+                            try:
+                                print "Post has %s comments... Clearing errors..." % p.post_comments.count()
+                                for c in p.post_comments:
+                                    # Do the same for comments
+                                    self.session["post_%s_comment_%s_form_error" % (p.key().id(), c.key().id())] = "" 
+                                    self.session["post_%s_comment_%s_owner" % (p.key().id(), c.key().id())] = ""
+                            except:
+                                print "Cannot blank individual comment post session error..."
                         except:
                             print "Cannot blank individual post session error..."
                         finally:
@@ -1414,6 +2035,11 @@ class Welcome(Handler):
                     PostHandler().set_post_likes(self, all_posts, user)
                     # Style Post Form buttons for current user
                     PostHandler().style_postform_buttons(self, all_posts, user)
+                
+                for post in all_posts:
+                    if post.post_comments.get() != None:
+                        # Style Comment Form buttons for current user
+                        PostCommentHandler().style_commentform_buttons(self, post, user)
 
                 #print "BEFORE render, main_user_msgs is: %s" % main_user_msgs 
                 # Get Current Date Time
@@ -1599,6 +2225,33 @@ class Like(db.Model):
     last_modified = db.DateTimeProperty(auto_now = True)
 
 """
+COMMENT GoogleAppEngine (Model) for persistance
+"""
+class Comment(db.Model):
+    post = db.ReferenceProperty(Post,
+                                collection_name='post_comments')
+
+    user = db.ReferenceProperty(User,
+                                collection_name='user_comments')
+
+    comment_parent = db.SelfReferenceProperty(required=False, default=None,
+                                collection_name='replies')
+
+    comment = db.TextProperty(required = True)
+    created_by = db.StringProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
+    last_modified = db.DateTimeProperty(auto_now = True)
+
+    def render(self, post):
+        self._render_content = self.comment.replace('\n', '<br />')
+        return Handler().render_str("comment.html", comment=self, post=post)
+
+    def render_single(self):
+        single_content = self.comment.replace('\n', '<br />')
+        self._render_single = single_content
+        return Handler().render_str("comment-single-reply.html", comment=self)
+
+"""
 Catch-All Blog Router
 """
 class BlogRouter(Handler):
@@ -1623,4 +2276,6 @@ app = webapp2.WSGIApplication([
     ('/blog/*', BlogRouter),
     ('/*', BlogRouter),
     webapp2.Route(r'/blog/<post_id:\d+>', handler=PostHandler, name='post'),
+    webapp2.Route(r'/blog/<post_id:\d+>/comment', handler=PostCommentHandler, name='newcomment'),
+    webapp2.Route(r'/blog/<post_id:\d+>/comment/<comment_id:\d+>', handler=PostCommentHandler, name='comment')
 ], config=config, debug=True)
