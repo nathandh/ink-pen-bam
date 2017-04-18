@@ -1924,7 +1924,14 @@ class Blog(Handler):
                             print "Cannot blank individual post session error..."
                         finally:
                             self._set_jinja_variable_session()
+                            stored_jinja_session = self._get_jinja_variable_session()
 
+            # Fail-safe set of "inkpenbam_session" variable
+            # TODO: Rather than have this here as a backup, ensure that 
+            # self._set_jinja_variable_session() and self.get_jinja_variable_session()
+            # ALWAYS work as expected. Until then...this is the 'failsafe' setter for Blog home
+            jinja_env.globals['inkpenbam_session'] = stored_jinja_session
+            
             # Render our page
             self.render("blog.html", posts=posts, curr_session=stored_jinja_session, main_user_msgs=main_user_msgs, msg_type=msg_type)
 
