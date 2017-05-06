@@ -2593,6 +2593,20 @@ class BlogRouter(Handler):
         self.redirect("/blog")
 
 
+class LetsEncryptHandler(Handler):
+    """
+    See: http://blog.seafuj.com/lets-encrypt-on-google-app-engine
+    -- as reference for setting up LetsEncrypt certificates
+    """
+    def get(self, challenge):
+        self.response.headers['Content-Type'] = 'text/plain'
+        responses = {
+            '[challenge 1]': '[response 1]',
+            '[challenge 2]': '[response 2]'
+        }
+        self.response.write(responses.get(challenge, ''))
+
+
 SECRET_KEY = Hasher().get_secret_key()
 
 config = {}
@@ -2614,5 +2628,6 @@ app = webapp2.WSGIApplication([
     webapp2.Route(r'/blog/<post_id:\d+>/comment',
                   handler=CommentActionHandler, name='newcomment'),
     webapp2.Route(r'/blog/<post_id:\d+>/comment/<comment_id:\d+>',
-                  handler=CommentActionHandler, name='comment')
+                  handler=CommentActionHandler, name='comment'),
+    ('/.well-known/acme-challenge/([\w-]+)', LetsEncryptHandler),
 ], config=config, debug=True)
