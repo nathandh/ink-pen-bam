@@ -5,21 +5,27 @@ threadsafe: true
 handlers:
 - url: /blog
   script: blog.app
+  secure: always
 
 - url: /blog/.*
   script: blog.app
+  secure: always
 
 - url: /images
   static_dir: static/images
+  secure: always
 
 - url: /css
   static_dir: static/css
+  secure: always
 
 - url: /js
   static_dir: static/js
+  secure: always
 
 - url: /.*
   script: blog.app
+  secure: always
 
 libraries:
 - name: jinja2
