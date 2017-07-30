@@ -2597,6 +2597,8 @@ class LetsEncryptHandler(Handler):
     """
     See: http://blog.seafuj.com/lets-encrypt-on-google-app-engine
     -- as reference for setting up LetsEncrypt certificates
+    For renewals run: 
+    sudo certbot certonly --manual -d domain.com -d www.domain.com
     """
     def get(self, challenge):
         self.response.headers['Content-Type'] = 'text/plain'
